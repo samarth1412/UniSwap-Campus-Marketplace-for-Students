@@ -12,6 +12,9 @@ import (
 	"time"
 
 	"uniswap-campus-marketplace/config"
+	"uniswap-campus-marketplace/handlers"
+	"uniswap-campus-marketplace/repository"
+	"uniswap-campus-marketplace/services"
 
 	_ "github.com/lib/pq"
 )
@@ -37,9 +40,14 @@ func main() {
 	defer db.Close()
 
 	a := &app{cfg: cfg, db: db}
+	userRepo := repository.NewPostgresUserRepository(db)
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
+	authHandler := handlers.NewAuthHandler(authService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", a.healthCheck)
+	mux.HandleFunc("/api/auth/register", authHandler.Register)
+	mux.HandleFunc("/api/auth/login", authHandler.Login)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),
