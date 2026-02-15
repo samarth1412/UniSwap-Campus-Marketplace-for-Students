@@ -41,13 +41,25 @@ func main() {
 
 	a := &app{cfg: cfg, db: db}
 	userRepo := repository.NewPostgresUserRepository(db)
+	listingRepo := repository.NewPostgresListingRepository(db)
+	reportRepo := repository.NewPostgresReportRepository(db)
+
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
+	listingService := services.NewListingService(listingRepo)
+	reportService := services.NewReportService(reportRepo, listingRepo)
+
 	authHandler := handlers.NewAuthHandler(authService)
+	listingHandler := handlers.NewListingHandler(listingService, reportService)
+	uploadHandler := handlers.NewUploadHandler()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", a.healthCheck)
 	mux.HandleFunc("/api/auth/register", authHandler.Register)
 	mux.HandleFunc("/api/auth/login", authHandler.Login)
+	mux.HandleFunc("/api/listings", listingHandler.Listings)
+	mux.HandleFunc("/api/listings/", listingHandler.ListingByIDRoutes)
+	mux.HandleFunc("/api/uploads/image", uploadHandler.UploadImage)
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),
