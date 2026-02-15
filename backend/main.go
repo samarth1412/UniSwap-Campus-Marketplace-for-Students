@@ -13,6 +13,7 @@ import (
 
 	"uniswap-campus-marketplace/config"
 	"uniswap-campus-marketplace/handlers"
+	"uniswap-campus-marketplace/middleware"
 	"uniswap-campus-marketplace/repository"
 	"uniswap-campus-marketplace/services"
 
@@ -48,6 +49,7 @@ func main() {
 	mux.HandleFunc("/health", a.healthCheck)
 	mux.HandleFunc("/api/auth/register", authHandler.Register)
 	mux.HandleFunc("/api/auth/login", authHandler.Login)
+	mux.Handle("/api/auth/me", middleware.Auth(authService)(http.HandlerFunc(authHandler.Me)))
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),
