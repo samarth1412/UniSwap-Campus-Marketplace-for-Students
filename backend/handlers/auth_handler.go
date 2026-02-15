@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"uniswap-campus-marketplace/middleware"
 	"uniswap-campus-marketplace/models"
 	"uniswap-campus-marketplace/repository"
 	"uniswap-campus-marketplace/services"
@@ -30,7 +31,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.authService.Register(r.Context(), req)
+	_, err := h.authService.Register(r.Context(), req)
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrValidation):
@@ -43,7 +44,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeSuccess(w, http.StatusCreated, result)
+	writeSuccess(w, http.StatusCreated, map[string]string{
+		"message": "registration successful",
+	})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -71,5 +74,32 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeSuccess(w, http.StatusOK, result)
+	writeSuccess(w, http.StatusOK, map[string]string{
+		"token": result.Token,
+	})
+}
+
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok || userID <= 0 {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	user, err := h.authService.GetUserByID(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to fetch user")
+		return
+	}
+
+	writeSuccess(w, http.StatusOK, user)
 }

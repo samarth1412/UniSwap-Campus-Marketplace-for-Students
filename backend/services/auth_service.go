@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -108,4 +109,41 @@ func (s *AuthService) generateToken(user *models.User) (string, error) {
 	}
 
 	return signedToken, nil
+}
+
+func (s *AuthService) ParseToken(tokenString string) (int64, error) {
+	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, ErrInvalidCredentials
+		}
+		return []byte(s.jwtSecret), nil
+	})
+	if err != nil || !parsedToken.Valid {
+		return 0, ErrInvalidCredentials
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return 0, ErrInvalidCredentials
+	}
+
+	userIDValue, ok := claims["user_id"]
+	if !ok {
+		return 0, ErrInvalidCredentials
+	}
+
+	userIDFloat, ok := userIDValue.(float64)
+	if !ok || userIDFloat <= 0 || userIDFloat > math.MaxInt64 {
+		return 0, ErrInvalidCredentials
+	}
+
+	return int64(userIDFloat), nil
+}
+
+func (s *AuthService) GetUserByID(ctx context.Context, id int64) (*models.User, error) {
+	user, err := s.userRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

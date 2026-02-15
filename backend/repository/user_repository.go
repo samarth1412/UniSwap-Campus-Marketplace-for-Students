@@ -16,6 +16,7 @@ var ErrEmailAlreadyExists = errors.New("email already exists")
 type UserRepository interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	GetByID(ctx context.Context, id int64) (*models.User, error)
 }
 
 type PostgresUserRepository struct {
@@ -82,6 +83,33 @@ func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (
 			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("get user by email: %w", err)
+	}
+
+	return user, nil
+}
+
+func (r *PostgresUserRepository) GetByID(ctx context.Context, id int64) (*models.User, error) {
+	const query = `
+		SELECT id, full_name, email, password_hash, university, created_at, updated_at
+		FROM users
+		WHERE id = $1
+	`
+
+	user := &models.User{}
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&user.ID,
+		&user.FullName,
+		&user.Email,
+		&user.PasswordHash,
+		&user.University,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("get user by id: %w", err)
 	}
 
 	return user, nil
