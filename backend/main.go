@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -58,9 +59,21 @@ func main() {
 	mux.HandleFunc("/api/auth/register", authHandler.Register)
 	mux.HandleFunc("/api/auth/login", authHandler.Login)
 	mux.Handle("/api/auth/me", middleware.Auth(authService)(http.HandlerFunc(authHandler.Me)))
-	mux.HandleFunc("/api/listings", listingHandler.Listings)
-	mux.HandleFunc("/api/listings/", listingHandler.ListingByIDRoutes)
-	mux.HandleFunc("/api/uploads/image", uploadHandler.UploadImage)
+	mux.Handle("/api/listings", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			middleware.Auth(authService)(http.HandlerFunc(listingHandler.Listings)).ServeHTTP(w, r)
+			return
+		}
+		listingHandler.Listings(w, r)
+	}))
+	mux.Handle("/api/listings/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(strings.TrimSpace(r.URL.Path), "/report") && r.Method == http.MethodPost {
+			middleware.Auth(authService)(http.HandlerFunc(listingHandler.ListingByIDRoutes)).ServeHTTP(w, r)
+			return
+		}
+		listingHandler.ListingByIDRoutes(w, r)
+	}))
+	mux.Handle("/api/uploads/image", middleware.Auth(authService)(http.HandlerFunc(uploadHandler.UploadImage)))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	srv := &http.Server{
