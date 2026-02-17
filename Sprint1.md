@@ -66,33 +66,7 @@
 ### Frontend
 
 - ✅ FE-8 — Listing Feed Page UI (mocked & connected to API)
-
-### Backend
-
-- (Add when done, e.g. ✅ BE-1 — Setup Go Project Structure)
-
----
-
-## 4) Issues Not Completed + Why
-
-*(Fill only for issues that were planned but not completed.)*
-
-| Issue | Reason (blocked / underestimated / scope cut / etc.) |
-|-------|------------------------------------------------------|
-| (e.g. FE-15) | (e.g. Ran out of time; will pick in Sprint 2) |
-
----
-
-## 5) Demo Notes (optional)
-
-**Frontend demo flow:**  
-Login → View listing feed → Open listing detail → Create listing (with image) → Search → Report listing.
-
-**Backend demo flow (Postman/curl):**  
-Register → Login (get JWT) → Create listing (with auth header) → Get listings → Report listing.
-
-**Known limitations:**  
-*(e.g. Image upload uses local storage only; search is frontend-only until BE-14 is done.)*
+- ✅ FE-9 — Listing Detail Page UI
 
 ### Backend
 
