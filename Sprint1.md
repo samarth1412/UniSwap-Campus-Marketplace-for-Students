@@ -68,6 +68,7 @@
 - ✅ FE-8 — Listing Feed Page UI (mocked & connected to API)
 - ✅ FE-9 — Listing Detail Page UI
 - ✅ FE-10 — Create Listing Page UI with image upload
+- ✅ FE-11 — Image Upload Input Component
 
 ### Backend
 
