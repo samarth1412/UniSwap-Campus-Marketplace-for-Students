@@ -71,6 +71,8 @@
 - ✅ FE-11 — Image Upload Input Component
 - ✅ FE-12 — Connect Create Listing to Backend
 - ✅ FE-13 — Connect Listing Feed to Backend
+- ✅ FE-14 — Basic Search Bar UI
+- ✅ FE-15 — Report Listing Button UI
 
 ### Backend
 
