@@ -1,0 +1,143 @@
+{
+  "info": {
+    "name": "UniSwap Sprint 1",
+    "description": "Sprint 1 demo APIs for auth, listings, reports, and upload.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"full_name\": \"Nandini Agrawal\",\n  \"email\": \"nandini@example.edu\",\n  \"password\": \"secret123\",\n  \"university\": \"UF\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/register"
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"nandini@example.edu\",\n  \"password\": \"secret123\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "Create Listing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Calculus Textbook\",\n  \"description\": \"Used for one semester\",\n  \"price\": 35.50,\n  \"category\": \"Books\"\n}"
+        },
+        "url": "{{baseUrl}}/api/listings"
+      }
+    },
+    {
+      "name": "Get All Listings",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/listings"
+      }
+    },
+    {
+      "name": "Search Listings",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/listings?search=book"
+      }
+    },
+    {
+      "name": "Get Listing By ID",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/listings/{{listingId}}"
+      }
+    },
+    {
+      "name": "Report Listing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reason\": \"Suspicious or misleading listing\"\n}"
+        },
+        "url": "{{baseUrl}}/api/listings/{{listingId}}/report"
+      }
+    },
+    {
+      "name": "Upload Image",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": ""
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/uploads/image"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "listingId",
+      "value": "1"
+    }
+  ]
+}
