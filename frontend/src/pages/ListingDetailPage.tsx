@@ -93,7 +93,7 @@ export function ListingDetailPage() {
           </span>
           <h1 style={{ margin: 0 }}>{listing.title}</h1>
           <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#059669' }}>
-            ${listing.price.toFixed(0)}
+            ₹{listing.price.toFixed(0)}
           </span>
           <p style={{ maxWidth: '36rem', lineHeight: 1.6 }}>{listing.description}</p>
           <p style={{ marginTop: '0.5rem', color: '#4b5563' }}>
