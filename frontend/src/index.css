@@ -66,3 +66,18 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Listings grid: 4 columns on large screens, 2 on tablet, 1 on mobile */
+.listings-grid {
+  width: 100%;
+}
+@media (max-width: 900px) {
+  .listings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 500px) {
+  .listings-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -123,9 +123,10 @@ export function HomePage() {
         <p>No listings match your search yet.</p>
       ) : (
         <section
+          className="listings-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
             gap: '1.5rem',
           }}
         >
@@ -184,7 +185,7 @@ export function HomePage() {
                   >
                     {listing.title}
                   </h2>
-                  <span style={{ fontWeight: 700, color: '#059669' }}>₹{listing.price.toFixed(0)}</span>
+                  <span style={{ fontWeight: 700, color: '#059669' }}>${listing.price.toFixed(0)}</span>
                 </div>
               </article>
             </Link>
