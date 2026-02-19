@@ -12,14 +12,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <nav style={{
-        padding: '1rem 1.5rem',
-        borderBottom: '1px solid #eee',
-        display: 'flex',
-        gap: '1.5rem',
-        alignItems: 'center',
-      }}>
-        <Link to="/" style={{ fontWeight: 700, textDecoration: 'none', color: '#333' }}>
+      <header style={{ width: '100%', borderBottom: '1px solid #ddd', boxSizing: 'border-box' }}>
+        <nav style={{
+          padding: '1rem 1.5rem',
+          display: 'flex',
+          gap: '1.5rem',
+          alignItems: 'center',
+        }}>
+        <Link to="/" style={{ fontWeight: 700, textDecoration: 'none', color: '#7c3aed', fontSize: '1.125rem' }}>
           UniSwap
         </Link>
         <Link to="/">Listings</Link>
@@ -36,7 +36,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link to="/register">Register</Link>
           </>
         )}
-      </nav>
+        </nav>
+      </header>
       <main style={{ flex: 1, padding: '1.5rem' }}>{children}</main>
     </div>
   );
