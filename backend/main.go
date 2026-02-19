@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -42,14 +43,38 @@ func main() {
 
 	a := &app{cfg: cfg, db: db}
 	userRepo := repository.NewPostgresUserRepository(db)
+	listingRepo := repository.NewPostgresListingRepository(db)
+	reportRepo := repository.NewPostgresReportRepository(db)
+
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
+	listingService := services.NewListingService(listingRepo)
+	reportService := services.NewReportService(reportRepo, listingRepo)
+
 	authHandler := handlers.NewAuthHandler(authService)
+	listingHandler := handlers.NewListingHandler(listingService, reportService)
+	uploadHandler := handlers.NewUploadHandler()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", a.healthCheck)
 	mux.HandleFunc("/api/auth/register", authHandler.Register)
 	mux.HandleFunc("/api/auth/login", authHandler.Login)
 	mux.Handle("/api/auth/me", middleware.Auth(authService)(http.HandlerFunc(authHandler.Me)))
+	mux.Handle("/api/listings", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			middleware.Auth(authService)(http.HandlerFunc(listingHandler.Listings)).ServeHTTP(w, r)
+			return
+		}
+		listingHandler.Listings(w, r)
+	}))
+	mux.Handle("/api/listings/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(strings.TrimSpace(r.URL.Path), "/report") && r.Method == http.MethodPost {
+			middleware.Auth(authService)(http.HandlerFunc(listingHandler.ListingByIDRoutes)).ServeHTTP(w, r)
+			return
+		}
+		listingHandler.ListingByIDRoutes(w, r)
+	}))
+	mux.Handle("/api/uploads/image", middleware.Auth(authService)(http.HandlerFunc(uploadHandler.UploadImage)))
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),

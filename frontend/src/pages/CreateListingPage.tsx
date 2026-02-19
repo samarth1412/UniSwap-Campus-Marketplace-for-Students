@@ -120,7 +120,7 @@ export function CreateListingPage() {
               flex: '1 1 160px',
             }}
           >
-            <span>Price ($)</span>
+            <span>Price (₹)</span>
             <input
               type="number"
               min={0}
