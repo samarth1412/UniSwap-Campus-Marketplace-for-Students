@@ -50,3 +50,71 @@ The system is developed using **Go, PostgreSQL, React, and TypeScript**, and bui
 - Image upload (local or S3-compatible storage)  
  NOW()
 
+ ---
+
+ ## Sprint 1
+
+### Frontend Issues
+
+Setup React + TypeScript project
+
+Implement App Routing
+
+Login Page UI
+
+Register Page UI
+
+JWT Token Storage
+
+Protected Route Component
+
+API Service Layer
+
+Listing Feed Page UI
+
+Listing Detail Page UI
+
+Create Listing Page UI
+
+Image Upload Input Component
+
+Connect Create Listing to Backend
+
+Connect Listing Feed to Backend
+
+Basic Search Bar UI
+
+Report Listing Button UI
+
+### Backend Issues
+
+Setup Go Project Structure
+
+PostgreSQL Setup + Connection
+
+Create Users Table
+
+Register Endpoint
+
+Login Endpoint (JWT)
+
+JWT Middleware
+
+Create Listings Table
+
+Create Listing Endpoint
+
+Get All Listings Endpoint
+
+Get Listing By ID Endpoint
+
+Basic Image Upload Endpoint
+
+Reports Table
+
+Report Listing Endpoint
+
+Basic Search Query Support
+
+Postman Collection for Demo
+
