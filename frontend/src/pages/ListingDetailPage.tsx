@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
 import { MOCK_LISTINGS } from '../data/mockListings';
+import { isAuthenticated } from '../hooks/useAuth';
 
 /**
  * Listing detail - full page for /listing/:id.
@@ -13,6 +14,7 @@ export function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const numericId = Number(id);
   const listing: Listing | undefined = MOCK_LISTINGS.find((item) => item.id === numericId);
+  const authenticated = isAuthenticated();
 
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
@@ -99,6 +101,22 @@ export function ListingDetailPage() {
             <strong>Seller:</strong> {listing.sellerName ?? 'Campus student'}
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+            {authenticated && (
+              <Link
+                to={`/listing/${listing.id}/edit`}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '999px',
+                  border: '1px solid #2563eb',
+                  backgroundColor: '#eff6ff',
+                  color: '#1d4ed8',
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                }}
+              >
+                Edit listing
+              </Link>
+            )}
             <button
               type="button"
               style={{

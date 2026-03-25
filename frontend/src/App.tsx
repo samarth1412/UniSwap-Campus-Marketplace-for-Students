@@ -10,6 +10,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ListingDetailPage } from './pages/ListingDetailPage';
 import { CreateListingPage } from './pages/CreateListingPage';
+import { EditListingPage } from './pages/EditListingPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 function App() {
@@ -26,6 +27,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CreateListingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/listing/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditListingPage />
               </ProtectedRoute>
             }
           />
