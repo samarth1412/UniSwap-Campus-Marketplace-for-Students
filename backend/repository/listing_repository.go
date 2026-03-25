@@ -14,7 +14,7 @@ var ErrListingNotFound = errors.New("listing not found")
 
 type ListingRepository interface {
 	Create(ctx context.Context, listing *models.Listing) (*models.Listing, error)
-	GetAll(ctx context.Context, search string) ([]models.Listing, error)
+	GetAll(ctx context.Context, params models.ListingListParams) (*models.PaginatedListings, error)
 	GetByID(ctx context.Context, id int64) (*models.Listing, error)
 	UpdateByID(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error)
 	DeleteByID(ctx context.Context, id int64) (int64, error)
@@ -60,31 +60,42 @@ func (r *PostgresListingRepository) Create(ctx context.Context, listing *models.
 	return created, nil
 }
 
-func (r *PostgresListingRepository) GetAll(ctx context.Context, search string) ([]models.Listing, error) {
-	base := `
-		SELECT id, seller_id, title, description, price, category, created_at
-		FROM listings
-	`
+func (r *PostgresListingRepository) GetAll(ctx context.Context, params models.ListingListParams) (*models.PaginatedListings, error) {
+	whereClause := ""
+	countArgs := make([]interface{}, 0)
+	selectArgs := make([]interface{}, 0)
 
-	var (
-		args  []interface{}
-		query string
-	)
-
-	if strings.TrimSpace(search) != "" {
-		query = base + ` WHERE title ILIKE $1 ORDER BY created_at DESC`
-		args = append(args, "%"+strings.TrimSpace(search)+"%")
-	} else {
-		query = base + ` ORDER BY created_at DESC`
+	if params.Search != "" {
+		whereClause = " WHERE title ILIKE $1"
+		searchValue := "%" + strings.TrimSpace(params.Search) + "%"
+		countArgs = append(countArgs, searchValue)
+		selectArgs = append(selectArgs, searchValue)
 	}
 
-	rows, err := r.db.QueryContext(ctx, query, args...)
+	countQuery := `SELECT COUNT(*) FROM listings` + whereClause
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, fmt.Errorf("count listings: %w", err)
+	}
+
+	offset := (params.Page - 1) * params.Limit
+	limitPlaceholder := len(selectArgs) + 1
+	offsetPlaceholder := len(selectArgs) + 2
+	selectArgs = append(selectArgs, params.Limit, offset)
+
+	selectQuery := `
+		SELECT id, seller_id, title, description, price, category, created_at
+		FROM listings` + whereClause + fmt.Sprintf(`
+		ORDER BY created_at DESC
+		LIMIT $%d OFFSET $%d`, limitPlaceholder, offsetPlaceholder)
+
+	rows, err := r.db.QueryContext(ctx, selectQuery, selectArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("get listings: %w", err)
 	}
 	defer rows.Close()
 
-	listings := make([]models.Listing, 0)
+	items := make([]models.Listing, 0)
 	for rows.Next() {
 		var listing models.Listing
 		if err := rows.Scan(
@@ -98,14 +109,25 @@ func (r *PostgresListingRepository) GetAll(ctx context.Context, search string) (
 		); err != nil {
 			return nil, fmt.Errorf("scan listing: %w", err)
 		}
-		listings = append(listings, listing)
+		items = append(items, listing)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate listings: %w", err)
 	}
 
-	return listings, nil
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + params.Limit - 1) / params.Limit
+	}
+
+	return &models.PaginatedListings{
+		Items:      items,
+		Page:       params.Page,
+		Limit:      params.Limit,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
 }
 
 func (r *PostgresListingRepository) GetByID(ctx context.Context, id int64) (*models.Listing, error) {

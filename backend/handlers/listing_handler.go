@@ -91,8 +91,25 @@ func (h *ListingHandler) createListing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ListingHandler) getAllListings(w http.ResponseWriter, r *http.Request) {
-	search := r.URL.Query().Get("search")
-	listings, err := h.listingService.GetAll(r.Context(), search)
+	page, err := parsePositiveIntQuery(r, "page")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "page must be a positive integer")
+		return
+	}
+
+	limit, err := parsePositiveIntQuery(r, "limit")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "limit must be a positive integer")
+		return
+	}
+
+	params := models.ListingListParams{
+		Search: r.URL.Query().Get("search"),
+		Page:   page,
+		Limit:  limit,
+	}
+
+	listings, err := h.listingService.GetAll(r.Context(), params)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch listings")
 		return
@@ -215,9 +232,6 @@ func parseListingPath(path string) (int64, bool, bool) {
 		return 0, false, false
 	}
 
-	// Allowed routes:
-	// /api/listings/{id}
-	// /api/listings/{id}/report
 	if len(parts) == 1 {
 		return id, false, true
 	}
@@ -226,4 +240,18 @@ func parseListingPath(path string) (int64, bool, bool) {
 	}
 
 	return 0, false, false
+}
+
+func parsePositiveIntQuery(r *http.Request, key string) (int, error) {
+	value := strings.TrimSpace(r.URL.Query().Get(key))
+	if value == "" {
+		return 0, nil
+	}
+
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed <= 0 {
+		return 0, errors.New("invalid positive integer")
+	}
+
+	return parsed, nil
 }

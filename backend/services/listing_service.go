@@ -12,6 +12,11 @@ import (
 
 var ErrForbidden = errors.New("forbidden")
 
+const (
+	defaultListingsPage  = 1
+	defaultListingsLimit = 10
+)
+
 type ListingService struct {
 	listingRepo repository.ListingRepository
 }
@@ -36,8 +41,16 @@ func (s *ListingService) Create(ctx context.Context, userID int64, req models.Cr
 	return s.listingRepo.Create(ctx, listing)
 }
 
-func (s *ListingService) GetAll(ctx context.Context, search string) ([]models.Listing, error) {
-	return s.listingRepo.GetAll(ctx, search)
+func (s *ListingService) GetAll(ctx context.Context, params models.ListingListParams) (*models.PaginatedListings, error) {
+	if params.Page <= 0 {
+		params.Page = defaultListingsPage
+	}
+	if params.Limit <= 0 {
+		params.Limit = defaultListingsLimit
+	}
+	params.Search = strings.TrimSpace(params.Search)
+
+	return s.listingRepo.GetAll(ctx, params)
 }
 
 func (s *ListingService) GetByID(ctx context.Context, listingID int64) (*models.Listing, error) {

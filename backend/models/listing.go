@@ -25,3 +25,17 @@ type Listing struct {
 	Category    string    `json:"category"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
+type ListingListParams struct {
+	Search string
+	Page   int
+	Limit  int
+}
+
+type PaginatedListings struct {
+	Items      []Listing `json:"items"`
+	Page       int       `json:"page"`
+	Limit      int       `json:"limit"`
+	Total      int       `json:"total"`
+	TotalPages int       `json:"total_pages"`
+}
