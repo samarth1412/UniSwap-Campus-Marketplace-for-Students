@@ -26,6 +26,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {authenticated ? (
           <>
             <Link to="/create">Create Listing</Link>
+            <Link to="/my-listings">My Listings</Link>
             <button type="button" onClick={handleLogout} style={{ marginLeft: 'auto' }}>
               Logout
             </button>

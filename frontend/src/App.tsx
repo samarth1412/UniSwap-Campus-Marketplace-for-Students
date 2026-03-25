@@ -11,6 +11,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { ListingDetailPage } from './pages/ListingDetailPage';
 import { CreateListingPage } from './pages/CreateListingPage';
 import { EditListingPage } from './pages/EditListingPage';
+import { MyListingsPage } from './pages/MyListingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 function App() {
@@ -35,6 +36,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <EditListingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-listings"
+            element={
+              <ProtectedRoute>
+                <MyListingsPage />
               </ProtectedRoute>
             }
           />
