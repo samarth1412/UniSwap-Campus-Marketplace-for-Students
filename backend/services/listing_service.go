@@ -18,14 +18,8 @@ func NewListingService(listingRepo repository.ListingRepository) *ListingService
 }
 
 func (s *ListingService) Create(ctx context.Context, userID int64, req models.CreateListingRequest) (*models.Listing, error) {
-	if strings.TrimSpace(req.Title) == "" {
-		return nil, fmt.Errorf("%w: title is required", ErrValidation)
-	}
-	if strings.TrimSpace(req.Category) == "" {
-		return nil, fmt.Errorf("%w: category is required", ErrValidation)
-	}
-	if req.Price < 0 {
-		return nil, fmt.Errorf("%w: price must be greater than or equal to 0", ErrValidation)
+	if err := validateListingFields(req.Title, req.Category, req.Price); err != nil {
+		return nil, err
 	}
 
 	listing := &models.Listing{
@@ -45,4 +39,33 @@ func (s *ListingService) GetAll(ctx context.Context, search string) ([]models.Li
 
 func (s *ListingService) GetByID(ctx context.Context, listingID int64) (*models.Listing, error) {
 	return s.listingRepo.GetByID(ctx, listingID)
+}
+
+func (s *ListingService) Update(ctx context.Context, listingID int64, req models.UpdateListingRequest) (*models.Listing, error) {
+	if err := validateListingFields(req.Title, req.Category, req.Price); err != nil {
+		return nil, err
+	}
+
+	listing := &models.Listing{
+		Title:       strings.TrimSpace(req.Title),
+		Description: strings.TrimSpace(req.Description),
+		Price:       req.Price,
+		Category:    strings.TrimSpace(req.Category),
+	}
+
+	return s.listingRepo.UpdateByID(ctx, listingID, listing)
+}
+
+func validateListingFields(title, category string, price float64) error {
+	if strings.TrimSpace(title) == "" {
+		return fmt.Errorf("%w: title is required", ErrValidation)
+	}
+	if strings.TrimSpace(category) == "" {
+		return fmt.Errorf("%w: category is required", ErrValidation)
+	}
+	if price < 0 {
+		return fmt.Errorf("%w: price must be greater than or equal to 0", ErrValidation)
+	}
+
+	return nil
 }

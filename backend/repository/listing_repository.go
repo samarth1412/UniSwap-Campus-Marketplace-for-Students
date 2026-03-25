@@ -16,6 +16,7 @@ type ListingRepository interface {
 	Create(ctx context.Context, listing *models.Listing) (*models.Listing, error)
 	GetAll(ctx context.Context, search string) ([]models.Listing, error)
 	GetByID(ctx context.Context, id int64) (*models.Listing, error)
+	UpdateByID(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error)
 }
 
 type PostgresListingRepository struct {
@@ -131,4 +132,44 @@ func (r *PostgresListingRepository) GetByID(ctx context.Context, id int64) (*mod
 	}
 
 	return listing, nil
+}
+
+func (r *PostgresListingRepository) UpdateByID(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error) {
+	const query = `
+		UPDATE listings
+		SET title = $1,
+			description = $2,
+			category = $3,
+			price = $4,
+			updated_at = NOW()
+		WHERE id = $5
+		RETURNING id, seller_id, title, description, price, category, created_at
+	`
+
+	updated := &models.Listing{}
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		listing.Title,
+		listing.Description,
+		listing.Category,
+		listing.Price,
+		id,
+	).Scan(
+		&updated.ID,
+		&updated.UserID,
+		&updated.Title,
+		&updated.Description,
+		&updated.Price,
+		&updated.Category,
+		&updated.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrListingNotFound
+		}
+		return nil, fmt.Errorf("update listing by id: %w", err)
+	}
+
+	return updated, nil
 }
