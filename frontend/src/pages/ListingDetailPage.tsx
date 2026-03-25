@@ -20,6 +20,8 @@ export function ListingDetailPage() {
   const [reportReason, setReportReason] = useState('');
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
 
   if (!listing) {
     return (
@@ -42,6 +44,20 @@ export function ListingDetailPage() {
   const handleCloseReport = () => {
     if (reportSubmitting) return;
     setShowReportModal(false);
+  };
+
+  const handleOpenDelete = () => {
+    setDeleteMessage(null);
+    setShowDeleteModal(true);
+  };
+
+  const handleCloseDelete = () => {
+    setShowDeleteModal(false);
+  };
+
+  const handleConfirmDelete = () => {
+    setDeleteMessage('Delete confirmed in the UI. Backend integration will be added in FE-21.');
+    setShowDeleteModal(false);
   };
 
   const handleSubmitReport = async (event: React.FormEvent) => {
@@ -100,22 +116,43 @@ export function ListingDetailPage() {
           <p style={{ marginTop: '0.5rem', color: '#4b5563' }}>
             <strong>Seller:</strong> {listing.sellerName ?? 'Campus student'}
           </p>
+          {deleteMessage && (
+            <p style={{ margin: 0, color: '#b45309', fontSize: '0.95rem' }}>
+              {deleteMessage}
+            </p>
+          )}
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
             {authenticated && (
-              <Link
-                to={`/listing/${listing.id}/edit`}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '999px',
-                  border: '1px solid #2563eb',
-                  backgroundColor: '#eff6ff',
-                  color: '#1d4ed8',
-                  cursor: 'pointer',
-                  textDecoration: 'none',
-                }}
-              >
-                Edit listing
-              </Link>
+              <>
+                <Link
+                  to={`/listing/${listing.id}/edit`}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '999px',
+                    border: '1px solid #2563eb',
+                    backgroundColor: '#eff6ff',
+                    color: '#1d4ed8',
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Edit listing
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleOpenDelete}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '999px',
+                    border: '1px solid #dc2626',
+                    backgroundColor: '#fef2f2',
+                    color: '#b91c1c',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Delete listing
+                </button>
+              </>
             )}
             <button
               type="button"
@@ -238,6 +275,65 @@ export function ListingDetailPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              padding: '1.5rem',
+              borderRadius: '0.75rem',
+              width: '100%',
+              maxWidth: '420px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            }}
+          >
+            <h2 style={{ marginTop: 0, marginBottom: '0.75rem' }}>Delete listing?</h2>
+            <p style={{ marginTop: 0, marginBottom: '1rem', color: '#4b5563', lineHeight: 1.5 }}>
+              This action will remove the listing from your marketplace view. Backend deletion will be connected in FE-21.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={handleCloseDelete}
+                style={{
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '999px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                style={{
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: '#dc2626',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                Confirm delete
+              </button>
+            </div>
           </div>
         </div>
       )}
