@@ -56,6 +56,8 @@ func (h *ListingHandler) ListingByIDRoutes(w http.ResponseWriter, r *http.Reques
 		h.getListingByID(w, r, listingID)
 	case http.MethodPut:
 		h.updateListing(w, r, listingID)
+	case http.MethodDelete:
+		h.deleteListing(w, r, listingID)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -135,6 +137,21 @@ func (h *ListingHandler) updateListing(w http.ResponseWriter, r *http.Request, l
 	}
 
 	writeSuccess(w, http.StatusOK, updated)
+}
+
+func (h *ListingHandler) deleteListing(w http.ResponseWriter, r *http.Request, listingID int64) {
+	err := h.listingService.Delete(r.Context(), listingID)
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrListingNotFound):
+			writeError(w, http.StatusNotFound, "listing not found")
+		default:
+			writeError(w, http.StatusInternalServerError, "failed to delete listing")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *ListingHandler) reportListing(w http.ResponseWriter, r *http.Request, listingID int64) {

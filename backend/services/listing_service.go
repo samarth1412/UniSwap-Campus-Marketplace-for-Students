@@ -56,6 +56,19 @@ func (s *ListingService) Update(ctx context.Context, listingID int64, req models
 	return s.listingRepo.UpdateByID(ctx, listingID, listing)
 }
 
+func (s *ListingService) Delete(ctx context.Context, listingID int64) error {
+	rowsAffected, err := s.listingRepo.DeleteByID(ctx, listingID)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return repository.ErrListingNotFound
+	}
+
+	return nil
+}
+
 func validateListingFields(title, category string, price float64) error {
 	if strings.TrimSpace(title) == "" {
 		return fmt.Errorf("%w: title is required", ErrValidation)
