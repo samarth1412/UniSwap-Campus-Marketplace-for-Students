@@ -45,14 +45,16 @@ func main() {
 	userRepo := repository.NewPostgresUserRepository(db)
 	listingRepo := repository.NewPostgresListingRepository(db)
 	reportRepo := repository.NewPostgresReportRepository(db)
+	listingImageRepo := repository.NewPostgresListingImageRepository(db)
 
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	listingService := services.NewListingService(listingRepo)
 	reportService := services.NewReportService(reportRepo, listingRepo)
+	listingImageService := services.NewListingImageService(listingRepo, listingImageRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	listingHandler := handlers.NewListingHandler(listingService, reportService)
-	uploadHandler := handlers.NewUploadHandler()
+	uploadHandler := handlers.NewUploadHandler(listingImageService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", a.healthCheck)
@@ -68,6 +70,10 @@ func main() {
 	}))
 	mux.Handle("/api/listings/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimSpace(r.URL.Path)
+		if strings.HasSuffix(path, "/images") && r.Method == http.MethodPost {
+			middleware.Auth(authService)(http.HandlerFunc(uploadHandler.UploadListingImages)).ServeHTTP(w, r)
+			return
+		}
 		if (strings.HasSuffix(path, "/report") && r.Method == http.MethodPost) || r.Method == http.MethodPut || r.Method == http.MethodDelete {
 			middleware.Auth(authService)(http.HandlerFunc(listingHandler.ListingByIDRoutes)).ServeHTTP(w, r)
 			return
