@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, type ApiResponse } from '../services/api';
+import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
 import { MOCK_LISTINGS } from '../data/mockListings';
 
@@ -24,7 +24,7 @@ export function HomePage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get<ApiResponse<Listing[]>>('/listings');
+        const response = await listingsApi.getAll();
         if (!response.data.success || !response.data.data) {
           throw new Error(response.data.error || 'Failed to load listings');
         }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api, type ApiResponse } from '../services/api';
+import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
 import { MOCK_LISTINGS } from '../data/mockListings';
 
@@ -53,8 +53,7 @@ export function ListingDetailPage() {
     setReportMessage(null);
 
     try {
-      const payload = { listing_id: listing.id, reason: reportReason.trim() };
-      const response = await api.post<ApiResponse<unknown>>('/reports', payload);
+      const response = await listingsApi.report(listing.id, reportReason.trim());
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to submit report');
       }
