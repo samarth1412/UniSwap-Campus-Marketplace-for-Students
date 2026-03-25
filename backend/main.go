@@ -67,7 +67,8 @@ func main() {
 		listingHandler.Listings(w, r)
 	}))
 	mux.Handle("/api/listings/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(strings.TrimSpace(r.URL.Path), "/report") && r.Method == http.MethodPost {
+		path := strings.TrimSpace(r.URL.Path)
+		if (strings.HasSuffix(path, "/report") && r.Method == http.MethodPost) || r.Method == http.MethodPut || r.Method == http.MethodDelete {
 			middleware.Auth(authService)(http.HandlerFunc(listingHandler.ListingByIDRoutes)).ServeHTTP(w, r)
 			return
 		}

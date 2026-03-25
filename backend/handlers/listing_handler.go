@@ -117,17 +117,25 @@ func (h *ListingHandler) getListingByID(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *ListingHandler) updateListing(w http.ResponseWriter, r *http.Request, listingID int64) {
+	userID, ok := userIDFromContext(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var req models.UpdateListingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	updated, err := h.listingService.Update(r.Context(), listingID, req)
+	updated, err := h.listingService.Update(r.Context(), userID, listingID, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrValidation):
 			writeError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, services.ErrForbidden):
+			writeError(w, http.StatusForbidden, "forbidden")
 		case errors.Is(err, repository.ErrListingNotFound):
 			writeError(w, http.StatusNotFound, "listing not found")
 		default:
@@ -140,9 +148,17 @@ func (h *ListingHandler) updateListing(w http.ResponseWriter, r *http.Request, l
 }
 
 func (h *ListingHandler) deleteListing(w http.ResponseWriter, r *http.Request, listingID int64) {
-	err := h.listingService.Delete(r.Context(), listingID)
+	userID, ok := userIDFromContext(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	err := h.listingService.Delete(r.Context(), userID, listingID)
 	if err != nil {
 		switch {
+		case errors.Is(err, services.ErrForbidden):
+			writeError(w, http.StatusForbidden, "forbidden")
 		case errors.Is(err, repository.ErrListingNotFound):
 			writeError(w, http.StatusNotFound, "listing not found")
 		default:

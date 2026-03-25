@@ -2,12 +2,15 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"uniswap-campus-marketplace/models"
 	"uniswap-campus-marketplace/repository"
 )
+
+var ErrForbidden = errors.New("forbidden")
 
 type ListingService struct {
 	listingRepo repository.ListingRepository
@@ -41,9 +44,17 @@ func (s *ListingService) GetByID(ctx context.Context, listingID int64) (*models.
 	return s.listingRepo.GetByID(ctx, listingID)
 }
 
-func (s *ListingService) Update(ctx context.Context, listingID int64, req models.UpdateListingRequest) (*models.Listing, error) {
+func (s *ListingService) Update(ctx context.Context, actorUserID, listingID int64, req models.UpdateListingRequest) (*models.Listing, error) {
 	if err := validateListingFields(req.Title, req.Category, req.Price); err != nil {
 		return nil, err
+	}
+
+	existing, err := s.listingRepo.GetByID(ctx, listingID)
+	if err != nil {
+		return nil, err
+	}
+	if existing.UserID != actorUserID {
+		return nil, ErrForbidden
 	}
 
 	listing := &models.Listing{
@@ -56,7 +67,15 @@ func (s *ListingService) Update(ctx context.Context, listingID int64, req models
 	return s.listingRepo.UpdateByID(ctx, listingID, listing)
 }
 
-func (s *ListingService) Delete(ctx context.Context, listingID int64) error {
+func (s *ListingService) Delete(ctx context.Context, actorUserID, listingID int64) error {
+	existing, err := s.listingRepo.GetByID(ctx, listingID)
+	if err != nil {
+		return err
+	}
+	if existing.UserID != actorUserID {
+		return ErrForbidden
+	}
+
 	rowsAffected, err := s.listingRepo.DeleteByID(ctx, listingID)
 	if err != nil {
 		return err
