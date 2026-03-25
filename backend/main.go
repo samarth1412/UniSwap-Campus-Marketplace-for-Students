@@ -59,6 +59,7 @@ func main() {
 	listingHandler := handlers.NewListingHandler(listingService, reportService)
 	uploadHandler := handlers.NewUploadHandler(listingImageService, uploadService)
 	userHandler := handlers.NewUserHandler(listingService)
+	uploadHandler := handlers.NewUploadHandler(uploadService)
 	wishlistHandler := handlers.NewWishlistHandler(wishlistService)
 
 	mux := http.NewServeMux()
@@ -89,6 +90,7 @@ func main() {
 	mux.Handle("/api/users/", http.HandlerFunc(userHandler.UserRoutes))
 	mux.Handle("/api/wishlist", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.Wishlist)))
 	mux.Handle("/api/wishlist/", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.WishlistByID)))
+	mux.Handle("/api/wishlist", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.Wishlist)))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	srv := &http.Server{
