@@ -103,15 +103,40 @@ func (h *ListingHandler) getAllListings(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	minPrice, err := parseOptionalFloatQuery(r, "min_price")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "min_price must be a valid number")
+		return
+	}
+
+	maxPrice, err := parseOptionalFloatQuery(r, "max_price")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "max_price must be a valid number")
+		return
+	}
+
+	keyword := strings.TrimSpace(r.URL.Query().Get("keyword"))
+	if keyword == "" {
+		keyword = strings.TrimSpace(r.URL.Query().Get("search"))
+	}
+
 	params := models.ListingListParams{
-		Search: r.URL.Query().Get("search"),
-		Page:   page,
-		Limit:  limit,
+		Page:     page,
+		Limit:    limit,
+		Category: r.URL.Query().Get("category"),
+		Keyword:  keyword,
+		MinPrice: minPrice,
+		MaxPrice: maxPrice,
 	}
 
 	listings, err := h.listingService.GetAll(r.Context(), params)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to fetch listings")
+		switch {
+		case errors.Is(err, services.ErrValidation):
+			writeError(w, http.StatusBadRequest, err.Error())
+		default:
+			writeError(w, http.StatusInternalServerError, "failed to fetch listings")
+		}
 		return
 	}
 
@@ -254,4 +279,18 @@ func parsePositiveIntQuery(r *http.Request, key string) (int, error) {
 	}
 
 	return parsed, nil
+}
+
+func parseOptionalFloatQuery(r *http.Request, key string) (*float64, error) {
+	value := strings.TrimSpace(r.URL.Query().Get(key))
+	if value == "" {
+		return nil, nil
+	}
+
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return &parsed, nil
 }
