@@ -29,20 +29,25 @@ function mapBackendListing(listing: BackendListing): Listing {
   };
 }
 
+async function mapSingleListingResponse(
+  request: Promise<{ data: ApiResponse<BackendListing> }>
+): Promise<{ data: ApiResponse<Listing> }> {
+  const response = await request;
+  if (response.data.success && response.data.data) {
+    response.data.data = mapBackendListing(response.data.data) as never;
+  }
+  return response as unknown as { data: ApiResponse<Listing> };
+}
+
 export const listingsApi = {
   getAll: (params?: ListingQueryParams) =>
     api.get<ApiResponse<Listing[]>>('/listings', { params }),
-  getById: async (id: number | string) => {
-    const response = await api.get<ApiResponse<BackendListing>>(`/listings/${id}`);
-    if (response.data.success && response.data.data) {
-      response.data.data = mapBackendListing(response.data.data) as never;
-    }
-    return response as typeof response & { data: ApiResponse<Listing> };
-  },
+  getById: (id: number | string) =>
+    mapSingleListingResponse(api.get<ApiResponse<BackendListing>>(`/listings/${id}`)),
   create: (payload: CreateListingPayload) =>
     api.post<ApiResponse<Listing>>('/listings', payload),
   update: (id: number | string, payload: UpdateListingPayload) =>
-    api.put<ApiResponse<Listing>>(`/listings/${id}`, payload),
+    mapSingleListingResponse(api.put<ApiResponse<BackendListing>>(`/listings/${id}`, payload)),
   remove: (id: number | string) =>
     api.delete<ApiResponse<{ message?: string }>>(`/listings/${id}`),
   report: (id: number | string, reason: string) =>

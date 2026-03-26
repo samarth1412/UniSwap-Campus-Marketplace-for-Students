@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { listingsApi } from '../services/api';
 import { MOCK_LISTINGS } from '../data/mockListings';
 
 /**
@@ -8,46 +9,146 @@ import { MOCK_LISTINGS } from '../data/mockListings';
  */
 export function EditListingPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const numericId = Number(id);
-  const listing = useMemo(
-    () => MOCK_LISTINGS.find((item) => item.id === numericId),
-    [numericId]
-  );
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('Books');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [listingExists, setListingExists] = useState(true);
 
-  const [title, setTitle] = useState(listing?.title ?? '');
-  const [description, setDescription] = useState(listing?.description ?? '');
-  const [price, setPrice] = useState(listing ? String(listing.price) : '');
-  const [category, setCategory] = useState(listing?.category ?? 'Books');
-  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
 
-  if (!listing) {
+    async function loadListing() {
+      if (!Number.isFinite(numericId) || numericId <= 0) {
+        if (!cancelled) {
+          setListingExists(false);
+          setLoadError('Listing not found.');
+          setLoading(false);
+        }
+        return;
+      }
+
+      setLoading(true);
+      setLoadError(null);
+
+      try {
+        const response = await listingsApi.getById(numericId);
+        if (!response.data.success || !response.data.data) {
+          throw new Error(response.data.error || 'Failed to load listing');
+        }
+
+        if (!cancelled) {
+          const data = response.data.data;
+          setTitle(data.title);
+          setDescription(data.description);
+          setPrice(String(data.price));
+          setCategory(data.category);
+          setListingExists(true);
+        }
+      } catch (err) {
+        console.error('Failed to load edit listing data', err);
+        const fallbackListing = MOCK_LISTINGS.find((item) => item.id === numericId);
+
+        if (!cancelled) {
+          if (fallbackListing) {
+            setTitle(fallbackListing.title);
+            setDescription(fallbackListing.description);
+            setPrice(String(fallbackListing.price));
+            setCategory(fallbackListing.category);
+            setLoadError('Unable to load the latest listing details from the server. Showing sample data.');
+            setListingExists(true);
+          } else {
+            setListingExists(false);
+            setLoadError('Listing not found.');
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadListing();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [numericId]);
+
+  if (loading) {
+    return <p>Loading listing...</p>;
+  }
+
+  if (!listingExists) {
     return (
       <div>
         <p>
           <Link to="/">{'< Back to listings'}</Link>
         </p>
         <h1>Listing not found</h1>
-        <p>The listing you want to edit does not exist.</p>
+        <p>{loadError ?? 'The listing you want to edit does not exist.'}</p>
       </div>
     );
   }
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setMessage('Edit UI saved locally. Backend integration will be added in FE-19.');
+    setSubmitError(null);
+
+    const numericPrice = Number(price);
+    if (!title.trim() || !description.trim() || !price.trim()) {
+      setSubmitError('Please fill in all required fields.');
+      return;
+    }
+    if (Number.isNaN(numericPrice) || numericPrice < 0) {
+      setSubmitError('Please enter a valid price.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await listingsApi.update(numericId, {
+        title: title.trim(),
+        description: description.trim(),
+        price: numericPrice,
+        category,
+      });
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Failed to update listing');
+      }
+      navigate(`/listing/${numericId}`, { replace: true });
+    } catch (err: unknown) {
+      console.error('Failed to update listing', err);
+      const ax = err as { response?: { data?: { error?: string } } };
+      setSubmitError(ax.response?.data?.error ?? 'Could not save changes right now. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div style={{ maxWidth: '680px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <p style={{ margin: 0 }}>
-        <Link to={`/listing/${listing.id}`}>{'< Back to listing'}</Link>
+        <Link to={`/listing/${numericId}`}>{'< Back to listing'}</Link>
       </p>
       <div>
         <h1 style={{ marginBottom: '0.5rem' }}>Edit Listing</h1>
         <p style={{ margin: 0, color: '#4b5563' }}>
-          Update your listing details. Changes are local for now until the Sprint 2 edit API is ready.
+          Update your listing details and save them to the marketplace.
         </p>
       </div>
+      {loadError && (
+        <p style={{ margin: 0, color: '#b45309' }}>
+          {loadError}
+        </p>
+      )}
 
       <form
         onSubmit={handleSubmit}
@@ -135,15 +236,15 @@ export function EditListingPage() {
           </label>
         </div>
 
-        {message && (
-          <p style={{ margin: 0, color: '#065f46', fontSize: '0.95rem' }}>
-            {message}
+        {submitError && (
+          <p style={{ margin: 0, color: '#b91c1c', fontSize: '0.95rem' }}>
+            {submitError}
           </p>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
           <Link
-            to={`/listing/${listing.id}`}
+            to={`/listing/${numericId}`}
             style={{
               padding: '0.6rem 1rem',
               borderRadius: '999px',
@@ -156,6 +257,7 @@ export function EditListingPage() {
           </Link>
           <button
             type="submit"
+            disabled={submitting}
             style={{
               padding: '0.6rem 1.1rem',
               borderRadius: '999px',
@@ -164,9 +266,10 @@ export function EditListingPage() {
               color: '#fff',
               fontWeight: 600,
               cursor: 'pointer',
+              opacity: submitting ? 0.8 : 1,
             }}
           >
-            Save changes
+            {submitting ? 'Saving...' : 'Save changes'}
           </button>
         </div>
       </form>
