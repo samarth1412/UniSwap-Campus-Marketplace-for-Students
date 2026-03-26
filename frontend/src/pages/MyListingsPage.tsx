@@ -1,23 +1,58 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { Listing } from '../types/listing';
-import { MOCK_LISTINGS } from '../data/mockListings';
+import { profileApi } from '../services/api';
 
 /**
  * FE-22: My listings page UI
- * Uses mock data until the backend user listings endpoint is ready.
+ * Connects to the backend user listings endpoint.
  */
 export function MyListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const deletedMessage = (location.state as { deletedMessage?: string } | null)?.deletedMessage;
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setListings(MOCK_LISTINGS.slice(0, 2));
-      setLoading(false);
-    }, 250);
+    let cancelled = false;
 
-    return () => window.clearTimeout(timer);
+    async function loadMyListings() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const meResponse = await profileApi.getMe();
+        if (!meResponse.data.success || !meResponse.data.data) {
+          throw new Error(meResponse.data.error || 'Failed to load user profile');
+        }
+
+        const listingsResponse = await profileApi.getMyListings(meResponse.data.data.id);
+        if (!listingsResponse.data.success || !listingsResponse.data.data) {
+          throw new Error(listingsResponse.data.error || 'Failed to load your listings');
+        }
+
+        if (!cancelled) {
+          setListings(listingsResponse.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load my listings', err);
+        if (!cancelled) {
+          setError('Unable to load your listings right now. Please try again later.');
+          setListings([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadMyListings();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -25,9 +60,19 @@ export function MyListingsPage() {
       <header style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <h1 style={{ margin: 0 }}>My Listings</h1>
         <p style={{ margin: 0, color: '#4b5563' }}>
-          Manage the items you have posted. This page is using placeholder data until the backend endpoint is available.
+          Manage the items you have posted to the marketplace.
         </p>
       </header>
+      {deletedMessage && (
+        <p style={{ margin: 0, color: '#065f46' }}>
+          {deletedMessage}
+        </p>
+      )}
+      {error && (
+        <p style={{ margin: 0, color: '#b91c1c' }}>
+          {error}
+        </p>
+      )}
 
       {loading ? (
         <p style={{ margin: 0 }}>Loading your listings...</p>

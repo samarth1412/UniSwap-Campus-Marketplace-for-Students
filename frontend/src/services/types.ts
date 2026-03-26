@@ -6,7 +6,7 @@ export interface ApiResponse<T> {
 
 export interface AuthResponse {
   token: string;
-  user?: { id: string; email: string; full_name?: string };
+  user?: BackendUser;
 }
 
 export interface RegisterPayload {
@@ -44,4 +44,13 @@ export interface BackendListing {
   category: string;
   primary_image_url?: string;
   created_at: string;
+}
+
+export interface BackendUser {
+  id: number;
+  full_name: string;
+  email: string;
+  university?: string;
+  created_at?: string;
+  updated_at?: string;
 }

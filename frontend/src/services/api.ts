@@ -7,6 +7,7 @@ export type {
   ApiResponse,
   AuthResponse,
   BackendListing,
+  BackendUser,
   RegisterPayload,
   CreateListingPayload,
   UpdateListingPayload,
