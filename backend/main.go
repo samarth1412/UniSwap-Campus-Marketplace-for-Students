@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"uniswap-campus-marketplace/apiresponse"
 	"uniswap-campus-marketplace/config"
 	"uniswap-campus-marketplace/handlers"
 	"uniswap-campus-marketplace/middleware"
@@ -45,14 +45,16 @@ func main() {
 	userRepo := repository.NewPostgresUserRepository(db)
 	listingRepo := repository.NewPostgresListingRepository(db)
 	reportRepo := repository.NewPostgresReportRepository(db)
+	listingImageRepo := repository.NewPostgresListingImageRepository(db)
 
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	listingService := services.NewListingService(listingRepo)
 	reportService := services.NewReportService(reportRepo, listingRepo)
+	listingImageService := services.NewListingImageService(listingRepo, listingImageRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	listingHandler := handlers.NewListingHandler(listingService, reportService)
-	uploadHandler := handlers.NewUploadHandler()
+	uploadHandler := handlers.NewUploadHandler(listingImageService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", a.healthCheck)
@@ -67,7 +69,12 @@ func main() {
 		listingHandler.Listings(w, r)
 	}))
 	mux.Handle("/api/listings/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(strings.TrimSpace(r.URL.Path), "/report") && r.Method == http.MethodPost {
+		path := strings.TrimSpace(r.URL.Path)
+		if strings.HasSuffix(path, "/images") && r.Method == http.MethodPost {
+			middleware.Auth(authService)(http.HandlerFunc(uploadHandler.UploadListingImages)).ServeHTTP(w, r)
+			return
+		}
+		if (strings.HasSuffix(path, "/report") && r.Method == http.MethodPost) || r.Method == http.MethodPut || r.Method == http.MethodDelete {
 			middleware.Auth(authService)(http.HandlerFunc(listingHandler.ListingByIDRoutes)).ServeHTTP(w, r)
 			return
 		}
@@ -101,33 +108,11 @@ func main() {
 
 func (a *app) healthCheck(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusMethodNotAllowed, apiError("method not allowed"))
+		apiresponse.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, apiSuccess(map[string]string{
+	apiresponse.WriteSuccess(w, http.StatusOK, map[string]string{
 		"status": "ok",
-	}))
-}
-
-type apiResponse struct {
-	Success bool        `json:"success"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-}
-
-func apiSuccess(data interface{}) apiResponse {
-	return apiResponse{Success: true, Data: data}
-}
-
-func apiError(message string) apiResponse {
-	return apiResponse{Success: false, Error: message}
-}
-
-func writeJSON(w http.ResponseWriter, status int, payload apiResponse) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(payload); err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-	}
+	})
 }

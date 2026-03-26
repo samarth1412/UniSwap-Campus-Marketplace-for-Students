@@ -51,12 +51,16 @@ func (h *ListingHandler) ListingByIDRoutes(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if r.Method != http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
+		h.getListingByID(w, r, listingID)
+	case http.MethodPut:
+		h.updateListing(w, r, listingID)
+	case http.MethodDelete:
+		h.deleteListing(w, r, listingID)
+	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
 	}
-
-	h.getListingByID(w, r, listingID)
 }
 
 func (h *ListingHandler) createListing(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +114,60 @@ func (h *ListingHandler) getListingByID(w http.ResponseWriter, r *http.Request, 
 	}
 
 	writeSuccess(w, http.StatusOK, listing)
+}
+
+func (h *ListingHandler) updateListing(w http.ResponseWriter, r *http.Request, listingID int64) {
+	userID, ok := userIDFromContext(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var req models.UpdateListingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	updated, err := h.listingService.Update(r.Context(), userID, listingID, req)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrValidation):
+			writeError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, services.ErrForbidden):
+			writeError(w, http.StatusForbidden, "forbidden")
+		case errors.Is(err, repository.ErrListingNotFound):
+			writeError(w, http.StatusNotFound, "listing not found")
+		default:
+			writeError(w, http.StatusInternalServerError, "failed to update listing")
+		}
+		return
+	}
+
+	writeSuccess(w, http.StatusOK, updated)
+}
+
+func (h *ListingHandler) deleteListing(w http.ResponseWriter, r *http.Request, listingID int64) {
+	userID, ok := userIDFromContext(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	err := h.listingService.Delete(r.Context(), userID, listingID)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrForbidden):
+			writeError(w, http.StatusForbidden, "forbidden")
+		case errors.Is(err, repository.ErrListingNotFound):
+			writeError(w, http.StatusNotFound, "listing not found")
+		default:
+			writeError(w, http.StatusInternalServerError, "failed to delete listing")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *ListingHandler) reportListing(w http.ResponseWriter, r *http.Request, listingID int64) {
