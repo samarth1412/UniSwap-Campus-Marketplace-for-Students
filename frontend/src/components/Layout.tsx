@@ -27,9 +27,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             Wishlist
           </Link>
           {authenticated && (
-            <Link to="/create" className="layout-nav-link">
-              Create Listing
-            </Link>
+            <>
+              <Link to="/create" className="layout-nav-link">
+                Create Listing
+              </Link>
+              <Link to="/my-listings" className="layout-nav-link">
+                My Listings
+              </Link>
+            </>
           )}
           <span className="layout-nav-spacer" aria-hidden />
           <div className="layout-nav-actions">

@@ -10,6 +10,8 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ListingDetailPage } from './pages/ListingDetailPage';
 import { CreateListingPage } from './pages/CreateListingPage';
+import { EditListingPage } from './pages/EditListingPage';
+import { MyListingsPage } from './pages/MyListingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { WishlistPage } from './pages/WishlistPage';
 import { WishlistProvider } from './context/WishlistContext';
@@ -30,6 +32,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CreateListingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/listing/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EditListingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-listings"
+              element={
+                <ProtectedRoute>
+                  <MyListingsPage />
                 </ProtectedRoute>
               }
             />
