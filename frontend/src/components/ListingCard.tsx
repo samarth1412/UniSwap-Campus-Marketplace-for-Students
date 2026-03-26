@@ -34,16 +34,18 @@ function HeartFilledIcon() {
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
-  const { isWishlisted, toggleWishlist } = useWishlist();
+  const { isWishlisted, toggleWishlist, togglingListingId } = useWishlist();
   const wishlisted = isWishlisted(listing.id);
+  const toggling = togglingListingId === listing.id;
 
   const handleWishlistClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
-      toggleWishlist(listing.id);
+      if (toggling) return;
+      void toggleWishlist(listing.id);
     },
-    [listing.id, toggleWishlist]
+    [listing.id, toggleWishlist, toggling]
   );
 
   return (
@@ -58,9 +60,11 @@ export function ListingCard({ listing }: ListingCardProps) {
           />
           <button
             type="button"
-            className={`listing-card__wishlist${wishlisted ? ' listing-card__wishlist--active' : ''}`}
+            className={`listing-card__wishlist${wishlisted ? ' listing-card__wishlist--active' : ''}${toggling ? ' listing-card__wishlist--busy' : ''}`}
             onClick={handleWishlistClick}
+            disabled={toggling}
             aria-pressed={wishlisted}
+            aria-busy={toggling}
             aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           >
             {wishlisted ? <HeartFilledIcon /> : <HeartOutlineIcon />}

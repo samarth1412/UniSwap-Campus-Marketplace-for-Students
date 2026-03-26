@@ -44,13 +44,11 @@ func main() {
 	a := &app{cfg: cfg, db: db}
 	userRepo := repository.NewPostgresUserRepository(db)
 	listingRepo := repository.NewPostgresListingRepository(db)
-	reportRepo := repository.NewPostgresReportRepository(db)
 	listingImageRepo := repository.NewPostgresListingImageRepository(db)
 	wishlistRepo := repository.NewPostgresWishlistRepository(db)
 
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	listingService := services.NewListingService(listingRepo)
-	reportService := services.NewReportService(reportRepo, listingRepo)
 	listingImageService := services.NewListingImageService(listingRepo, listingImageRepo)
 	wishlistService := services.NewWishlistService(wishlistRepo, listingRepo)
 

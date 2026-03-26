@@ -1,62 +1,159 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useLocation } from 'react-router-dom';
+import type { Listing } from '../types/listing';
+import { getToken } from '../hooks/useAuth';
+import { wishlistApi } from '../services/wishlistApi';
+import type { ApiResponse } from '../services/types';
 
 type WishlistContextValue = {
   savedIds: number[];
+  wishlistListings: Listing[];
+  loading: boolean;
+  error: string | null;
+  togglingListingId: number | null;
   isWishlisted: (listingId: number) => boolean;
-  toggleWishlist: (listingId: number) => void;
-  clearWishlist: () => void;
+  toggleWishlist: (listingId: number) => Promise<void>;
+  refreshWishlist: () => Promise<void>;
 };
-
-const STORAGE_KEY = 'wishlist_ids';
-
-function loadSavedIds(): number[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    const ids = parsed
-      .map((v) => (typeof v === 'number' ? v : Number(v)))
-      .filter((n) => Number.isFinite(n));
-    // Ensure uniqueness while keeping order.
-    return Array.from(new Set(ids));
-  } catch {
-    return [];
-  }
-}
 
 const WishlistContext = createContext<WishlistContextValue | undefined>(undefined);
 
-export function WishlistProvider({ children }: { children: React.ReactNode }) {
-  const [savedIds, setSavedIds] = useState<number[]>(loadSavedIds);
+function getErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as ApiResponse<unknown> | undefined;
+    if (data?.error && typeof data.error === 'string') return data.error;
+    return err.message;
+  }
+  if (err instanceof Error) return err.message;
+  return 'Something went wrong';
+}
 
-  const savedSet = useMemo(() => new Set(savedIds), [savedIds]);
+export function WishlistProvider({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const [wishlistIdByListingId, setWishlistIdByListingId] = useState<Map<number, number>>(
+    () => new Map()
+  );
+  const [wishlistListings, setWishlistListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [togglingListingId, setTogglingListingId] = useState<number | null>(null);
+
+  const wishlistIdByListingIdRef = useRef(wishlistIdByListingId);
+  wishlistIdByListingIdRef.current = wishlistIdByListingId;
+
+  const refreshWishlist = useCallback(async () => {
+    if (!getToken()) {
+      setWishlistIdByListingId(new Map());
+      setWishlistListings([]);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await wishlistApi.getAll();
+      if (!res.data.success || !res.data.data) {
+        setError(res.data.error ?? 'Failed to load wishlist');
+        setWishlistIdByListingId(new Map());
+        setWishlistListings([]);
+        return;
+      }
+      const map = new Map<number, number>();
+      const listings: Listing[] = [];
+      for (const entry of res.data.data) {
+        map.set(entry.listing.id, entry.wishlistId);
+        listings.push(entry.listing);
+      }
+      setWishlistIdByListingId(map);
+      setWishlistListings(listings);
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setWishlistIdByListingId(new Map());
+      setWishlistListings([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedIds));
-  }, [savedIds]);
+    void refreshWishlist();
+  }, [location.pathname, refreshWishlist]);
+
+  const savedSet = useMemo(() => new Set(wishlistIdByListingId.keys()), [wishlistIdByListingId]);
+
+  const savedIds = useMemo(() => Array.from(savedSet), [savedSet]);
 
   const isWishlisted = useCallback(
-    (listingId: number) => {
-      return savedSet.has(listingId);
-    },
+    (listingId: number) => savedSet.has(listingId),
     [savedSet]
   );
 
-  const toggleWishlist = useCallback((listingId: number) => {
-    setSavedIds((prev) => {
-      const next = prev.includes(listingId) ? prev.filter((id) => id !== listingId) : [...prev, listingId];
-      return Array.from(new Set(next));
-    });
-  }, []);
+  const toggleWishlist = useCallback(
+    async (listingId: number) => {
+      if (!getToken()) {
+        window.location.href = '/login';
+        return;
+      }
 
-  const clearWishlist = useCallback(() => {
-    setSavedIds([]);
-  }, []);
+      setTogglingListingId(listingId);
+      setError(null);
+      try {
+        const wishlistRowId = wishlistIdByListingIdRef.current.get(listingId);
+        if (wishlistRowId !== undefined) {
+          await wishlistApi.remove(wishlistRowId);
+        } else {
+          try {
+            await wishlistApi.create({ listing_id: listingId });
+          } catch (err) {
+            if (axios.isAxiosError(err) && err.response?.status === 409) {
+              // Already saved — sync with server
+            } else {
+              throw err;
+            }
+          }
+        }
+        await refreshWishlist();
+      } catch (err) {
+        setError(getErrorMessage(err));
+        await refreshWishlist();
+      } finally {
+        setTogglingListingId(null);
+      }
+    },
+    [refreshWishlist]
+  );
 
   const value = useMemo<WishlistContextValue>(
-    () => ({ savedIds, isWishlisted, toggleWishlist, clearWishlist }),
-    [savedIds, isWishlisted, toggleWishlist, clearWishlist]
+    () => ({
+      savedIds,
+      wishlistListings,
+      loading,
+      error,
+      togglingListingId,
+      isWishlisted,
+      toggleWishlist,
+      refreshWishlist,
+    }),
+    [
+      savedIds,
+      wishlistListings,
+      loading,
+      error,
+      togglingListingId,
+      isWishlisted,
+      toggleWishlist,
+      refreshWishlist,
+    ]
   );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
@@ -67,4 +164,3 @@ export function useWishlist() {
   if (!ctx) throw new Error('useWishlist must be used within WishlistProvider');
   return ctx;
 }
-
