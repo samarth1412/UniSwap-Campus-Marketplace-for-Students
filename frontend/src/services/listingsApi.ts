@@ -16,6 +16,22 @@ export interface ListingQueryParams {
   limit?: number;
 }
 
+export interface PaginatedListings {
+  items: Listing[];
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+interface BackendPaginatedListings {
+  items: BackendListing[];
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
 function mapBackendListing(listing: BackendListing): Listing {
   return {
     id: listing.id,
@@ -40,8 +56,26 @@ async function mapSingleListingResponse(
 }
 
 export const listingsApi = {
-  getAll: (params?: ListingQueryParams) =>
-    api.get<ApiResponse<Listing[]>>('/listings', { params }),
+  getAll: async (
+    params?: ListingQueryParams
+  ): Promise<{ data: ApiResponse<PaginatedListings> }> => {
+    const response = await api.get<ApiResponse<BackendPaginatedListings>>('/listings', { params });
+
+    if (response.data.success && response.data.data) {
+      const backend = response.data.data;
+      const mapped: PaginatedListings = {
+        items: backend.items.map(mapBackendListing),
+        page: backend.page,
+        limit: backend.limit,
+        total: backend.total,
+        total_pages: backend.total_pages,
+      };
+      // Keep response shape consistent with our PaginatedListings type.
+      response.data.data = mapped as never;
+    }
+
+    return response as unknown as { data: ApiResponse<PaginatedListings> };
+  },
   getById: (id: number | string) =>
     mapSingleListingResponse(api.get<ApiResponse<BackendListing>>(`/listings/${id}`)),
   create: (payload: CreateListingPayload) =>

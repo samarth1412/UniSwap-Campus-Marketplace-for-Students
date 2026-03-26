@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, type ApiResponse } from '../services/api';
+import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
 import { MOCK_LISTINGS } from '../data/mockListings';
+import { Pagination } from '../components/Pagination';
 
 /**
  * Listing feed
@@ -11,11 +12,34 @@ import { MOCK_LISTINGS } from '../data/mockListings';
  * FE-14: Basic search/filter UI
  */
 export function HomePage() {
-  const [listings, setListings] = useState<Listing[]>(MOCK_LISTINGS);
+  const [items, setItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    // New search/category always starts from page 1.
+    setPage(1);
+  }, [searchTerm, categoryFilter]);
+
+  const mockFilteredListings = useMemo(() => {
+    return MOCK_LISTINGS.filter((listing) => {
+      const matchesSearch =
+        searchTerm.trim().length === 0 ||
+        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        listing.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory =
+        categoryFilter === 'all' || listing.category.toLowerCase() === categoryFilter.toLowerCase();
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchTerm, categoryFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,20 +48,31 @@ export function HomePage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get<ApiResponse<Listing[]>>('/listings');
+        const response = await listingsApi.getAll({
+          search: searchTerm.trim() || undefined,
+          category: categoryFilter === 'all' ? undefined : categoryFilter,
+          page,
+          limit,
+        });
         if (!response.data.success || !response.data.data) {
           throw new Error(response.data.error || 'Failed to load listings');
         }
+
         if (!cancelled) {
-          // For Sprint 1 we only rely on id, title, price, category.
-          setListings(response.data.data);
+          setItems(response.data.data.items);
+          setTotalPages(Math.max(1, response.data.data.total_pages));
         }
       } catch (err) {
         // Fallback to mocked data if backend is not ready.
         if (!cancelled) {
           console.error('Failed to load listings, using mock data instead:', err);
           setError('Unable to load listings from server. Showing sample data.');
-          setListings(MOCK_LISTINGS);
+          const total = mockFilteredListings.length;
+          const nextTotalPages = Math.max(1, Math.ceil(total / limit));
+          const start = (page - 1) * limit;
+          const end = start + limit;
+          setItems(mockFilteredListings.slice(start, end));
+          setTotalPages(nextTotalPages);
         }
       } finally {
         if (!cancelled) {
@@ -51,19 +86,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const filteredListings = listings.filter((listing) => {
-    const matchesSearch =
-      searchTerm.trim().length === 0 ||
-      listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      listing.description.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesCategory =
-      categoryFilter === 'all' || listing.category.toLowerCase() === categoryFilter.toLowerCase();
-
-    return matchesSearch && matchesCategory;
-  });
+  }, [page, limit, searchTerm, categoryFilter, mockFilteredListings]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -119,7 +142,7 @@ export function HomePage() {
         )}
       </header>
 
-      {filteredListings.length === 0 ? (
+      {items.length === 0 && !loading ? (
         <p>No listings match your search yet.</p>
       ) : (
         <section
@@ -129,7 +152,7 @@ export function HomePage() {
             gap: '1.5rem',
           }}
         >
-          {filteredListings.map((listing) => (
+          {items.map((listing) => (
             <Link
               key={listing.id}
               to={`/listing/${listing.id}`}
@@ -191,6 +214,13 @@ export function HomePage() {
           ))}
         </section>
       )}
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        disabled={loading}
+        onPageChange={(nextPage) => setPage(nextPage)}
+      />
     </div>
   );
 }
