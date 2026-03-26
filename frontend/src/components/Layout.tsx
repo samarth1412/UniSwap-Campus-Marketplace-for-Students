@@ -1,5 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { isAuthenticated, clearToken } from '../hooks/useAuth';
+import { UniSwapLogo } from './UniSwapLogo';
+import './Layout.css';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -11,31 +13,41 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ width: '100%', borderBottom: '1px solid #ddd', boxSizing: 'border-box' }}>
-        <nav style={{
-          padding: '1rem 1.5rem',
-          display: 'flex',
-          gap: '1.5rem',
-          alignItems: 'center',
-        }}>
-        <Link to="/" style={{ fontWeight: 700, textDecoration: 'none', color: '#7c3aed', fontSize: '1.125rem' }}>
-          UniSwap
-        </Link>
-        <Link to="/">Listings</Link>
-        {authenticated ? (
-          <>
-            <Link to="/create">Create Listing</Link>
-            <button type="button" onClick={handleLogout} style={{ marginLeft: 'auto' }}>
-              Logout
-            </button>
-          </>
-        ) : (
-          <>
-            <Link to="/login">Login</Link>
-            <Link to="/register">Register</Link>
-          </>
-        )}
+    <div className="layout-shell">
+      <header className="layout-header">
+        <nav className="layout-nav" aria-label="Main">
+          <Link to="/" className="layout-brand">
+            <UniSwapLogo className="layout-brand__logo" />
+            <span>UniSwap</span>
+          </Link>
+          <Link to="/" className="layout-nav-link">
+            Listings
+          </Link>
+          <Link to="/wishlist" className="layout-nav-link">
+            Wishlist
+          </Link>
+          {authenticated && (
+            <Link to="/create" className="layout-nav-link">
+              Create Listing
+            </Link>
+          )}
+          <span className="layout-nav-spacer" aria-hidden />
+          <div className="layout-nav-actions">
+            {authenticated ? (
+              <button type="button" className="layout-btn layout-btn--ghost" onClick={handleLogout}>
+                Logout
+              </button>
+            ) : (
+              <>
+                <Link to="/login" className="layout-nav-link">
+                  Login
+                </Link>
+                <Link to="/register" className="layout-nav-link">
+                  Register
+                </Link>
+              </>
+            )}
+          </div>
         </nav>
       </header>
       <main style={{ flex: 1, padding: '1.5rem' }}>{children}</main>
