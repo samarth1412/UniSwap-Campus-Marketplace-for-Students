@@ -96,6 +96,14 @@
   color: #be123c;
 }
 
+.listing-card__wishlist:disabled,
+.listing-card__wishlist--busy {
+  cursor: wait;
+  opacity: 0.75;
+  transform: none;
+  pointer-events: none;
+}
+
 .listing-card__heart-svg {
   width: 1.125rem;
   height: 1.125rem;
