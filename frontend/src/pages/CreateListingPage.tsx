@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listingsApi, type CreateListingPayload } from '../services/api';
+import { api, type ApiResponse } from '../services/api';
 import { ImageUpload } from '../components/ImageUpload';
+
+interface CreateListingPayload {
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  // For Sprint 1 we keep image as optional string; backend can evolve later.
+  imageUrl?: string;
+}
 
 /**
  * Create listing page - protected route.
@@ -46,7 +55,7 @@ export function CreateListingPage() {
 
     setSubmitting(true);
     try {
-      const response = await listingsApi.create(payload);
+      const response = await api.post<ApiResponse<unknown>>('/listings', payload);
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to create listing');
       }

@@ -44,24 +44,17 @@ func main() {
 	a := &app{cfg: cfg, db: db}
 	userRepo := repository.NewPostgresUserRepository(db)
 	listingRepo := repository.NewPostgresListingRepository(db)
-	listingImageRepo := repository.NewPostgresListingImageRepository(db)
-	wishlistRepo := repository.NewPostgresWishlistRepository(db)
 	reportRepo := repository.NewPostgresReportRepository(db)
+	listingImageRepo := repository.NewPostgresListingImageRepository(db)
 
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	listingService := services.NewListingService(listingRepo)
-	listingImageService := services.NewListingImageService(listingRepo, listingImageRepo)
-	uploadService := services.NewUploadService(listingRepo, listingImageRepo)
-	wishlistService := services.NewWishlistService(wishlistRepo, listingRepo)
 	reportService := services.NewReportService(reportRepo, listingRepo)
+	listingImageService := services.NewListingImageService(listingRepo, listingImageRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	listingHandler := handlers.NewListingHandler(listingService, reportService)
-	uploadHandler := handlers.NewUploadHandler(listingImageService, uploadService)
-	userHandler := handlers.NewUserHandler(listingService)
-	uploadHandler := handlers.NewUploadHandler(uploadService)
-	userHandler := handlers.NewUserHandler(listingService)
-	wishlistHandler := handlers.NewWishlistHandler(wishlistService)
+	uploadHandler := handlers.NewUploadHandler(listingImageService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", a.healthCheck)
@@ -88,11 +81,6 @@ func main() {
 		listingHandler.ListingByIDRoutes(w, r)
 	}))
 	mux.Handle("/api/uploads/image", middleware.Auth(authService)(http.HandlerFunc(uploadHandler.UploadImage)))
-	mux.Handle("/api/users/", http.HandlerFunc(userHandler.UserRoutes))
-	mux.Handle("/api/wishlist", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.Wishlist)))
-	mux.Handle("/api/wishlist/", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.WishlistByID)))
-	mux.Handle("/api/wishlist", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.Wishlist)))
-	mux.Handle("/api/wishlist/", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.WishlistByID)))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	srv := &http.Server{

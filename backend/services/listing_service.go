@@ -12,11 +12,6 @@ import (
 
 var ErrForbidden = errors.New("forbidden")
 
-const (
-	defaultListingsPage  = 1
-	defaultListingsLimit = 10
-)
-
 type ListingService struct {
 	listingRepo repository.ListingRepository
 }
@@ -41,40 +36,12 @@ func (s *ListingService) Create(ctx context.Context, userID int64, req models.Cr
 	return s.listingRepo.Create(ctx, listing)
 }
 
-func (s *ListingService) GetAll(ctx context.Context, params models.ListingListParams) (*models.PaginatedListings, error) {
-	if params.Page <= 0 {
-		params.Page = defaultListingsPage
-	}
-	if params.Limit <= 0 {
-		params.Limit = defaultListingsLimit
-	}
-
-	params.Category = strings.TrimSpace(params.Category)
-	params.Keyword = strings.TrimSpace(params.Keyword)
-
-	if params.MinPrice != nil && *params.MinPrice < 0 {
-		return nil, fmt.Errorf("%w: min_price must be greater than or equal to 0", ErrValidation)
-	}
-	if params.MaxPrice != nil && *params.MaxPrice < 0 {
-		return nil, fmt.Errorf("%w: max_price must be greater than or equal to 0", ErrValidation)
-	}
-	if params.MinPrice != nil && params.MaxPrice != nil && *params.MinPrice > *params.MaxPrice {
-		return nil, fmt.Errorf("%w: min_price cannot be greater than max_price", ErrValidation)
-	}
-
-	return s.listingRepo.GetAll(ctx, params)
+func (s *ListingService) GetAll(ctx context.Context, search string) ([]models.Listing, error) {
+	return s.listingRepo.GetAll(ctx, search)
 }
 
 func (s *ListingService) GetByID(ctx context.Context, listingID int64) (*models.Listing, error) {
 	return s.listingRepo.GetByID(ctx, listingID)
-}
-
-func (s *ListingService) GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error) {
-	if userID <= 0 {
-		return nil, fmt.Errorf("%w: user id is required", ErrValidation)
-	}
-
-	return s.listingRepo.GetByUserID(ctx, userID)
 }
 
 func (s *ListingService) Update(ctx context.Context, actorUserID, listingID int64, req models.UpdateListingRequest) (*models.Listing, error) {

@@ -13,44 +13,49 @@ import { CreateListingPage } from './pages/CreateListingPage';
 import { EditListingPage } from './pages/EditListingPage';
 import { MyListingsPage } from './pages/MyListingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { WishlistPage } from './pages/WishlistPage';
+import { WishlistProvider } from './context/WishlistContext';
 
 function App() {
   return (
     <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/listing/:id" element={<ListingDetailPage />} />
-          <Route
-            path="/create"
-            element={
-              <ProtectedRoute>
-                <CreateListingPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/listing/:id/edit"
-            element={
-              <ProtectedRoute>
-                <EditListingPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/my-listings"
-            element={
-              <ProtectedRoute>
-                <MyListingsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/404" element={<NotFoundPage />} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
-        </Routes>
-      </Layout>
+      <WishlistProvider>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/wishlist" element={<WishlistPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/listing/:id" element={<ListingDetailPage />} />
+            <Route
+              path="/create"
+              element={
+                <ProtectedRoute>
+                  <CreateListingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/listing/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EditListingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-listings"
+              element={
+                <ProtectedRoute>
+                  <MyListingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/404" element={<NotFoundPage />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
+          </Routes>
+        </Layout>
+      </WishlistProvider>
     </BrowserRouter>
   );
 }

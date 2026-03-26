@@ -14,9 +14,8 @@ var ErrListingNotFound = errors.New("listing not found")
 
 type ListingRepository interface {
 	Create(ctx context.Context, listing *models.Listing) (*models.Listing, error)
-	GetAll(ctx context.Context, params models.ListingListParams) (*models.PaginatedListings, error)
+	GetAll(ctx context.Context, search string) ([]models.Listing, error)
 	GetByID(ctx context.Context, id int64) (*models.Listing, error)
-	GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error)
 	UpdateByID(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error)
 	DeleteByID(ctx context.Context, id int64) (int64, error)
 }
@@ -61,48 +60,31 @@ func (r *PostgresListingRepository) Create(ctx context.Context, listing *models.
 	return created, nil
 }
 
-func (r *PostgresListingRepository) GetAll(ctx context.Context, params models.ListingListParams) (*models.PaginatedListings, error) {
-	whereClause, filterArgs := buildListingFilters(params)
+func (r *PostgresListingRepository) GetAll(ctx context.Context, search string) ([]models.Listing, error) {
+	base := `
+		SELECT id, seller_id, title, description, price, category, created_at
+		FROM listings
+	`
 
-	countQuery := `SELECT COUNT(*) FROM listings l` + whereClause
-	var total int
-	if err := r.db.QueryRowContext(ctx, countQuery, filterArgs...).Scan(&total); err != nil {
-		return nil, fmt.Errorf("count listings: %w", err)
+	var (
+		args  []interface{}
+		query string
+	)
+
+	if strings.TrimSpace(search) != "" {
+		query = base + ` WHERE title ILIKE $1 ORDER BY created_at DESC`
+		args = append(args, "%"+strings.TrimSpace(search)+"%")
+	} else {
+		query = base + ` ORDER BY created_at DESC`
 	}
 
-	offset := (params.Page - 1) * params.Limit
-	selectArgs := append([]interface{}{}, filterArgs...)
-	limitPlaceholder := len(selectArgs) + 1
-	offsetPlaceholder := len(selectArgs) + 2
-	selectArgs = append(selectArgs, params.Limit, offset)
-
-	selectQuery := `
-		SELECT
-			l.id,
-			l.seller_id,
-			l.title,
-			l.description,
-			l.price,
-			l.category,
-			COALESCE((
-				SELECT li.image_url
-				FROM listing_images li
-				WHERE li.listing_id = l.id
-				ORDER BY li.is_primary DESC, li.created_at ASC
-				LIMIT 1
-			), ''),
-			l.created_at
-		FROM listings l` + whereClause + fmt.Sprintf(`
-		ORDER BY l.created_at DESC
-		LIMIT $%d OFFSET $%d`, limitPlaceholder, offsetPlaceholder)
-
-	rows, err := r.db.QueryContext(ctx, selectQuery, selectArgs...)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("get listings: %w", err)
 	}
 	defer rows.Close()
 
-	items := make([]models.Listing, 0)
+	listings := make([]models.Listing, 0)
 	for rows.Next() {
 		var listing models.Listing
 		if err := rows.Scan(
@@ -112,51 +94,25 @@ func (r *PostgresListingRepository) GetAll(ctx context.Context, params models.Li
 			&listing.Description,
 			&listing.Price,
 			&listing.Category,
-			&listing.PrimaryImageURL,
 			&listing.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan listing: %w", err)
 		}
-		items = append(items, listing)
+		listings = append(listings, listing)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate listings: %w", err)
 	}
 
-	totalPages := 0
-	if total > 0 {
-		totalPages = (total + params.Limit - 1) / params.Limit
-	}
-
-	return &models.PaginatedListings{
-		Items:      items,
-		Page:       params.Page,
-		Limit:      params.Limit,
-		Total:      total,
-		TotalPages: totalPages,
-	}, nil
+	return listings, nil
 }
 
 func (r *PostgresListingRepository) GetByID(ctx context.Context, id int64) (*models.Listing, error) {
 	const query = `
-		SELECT
-			l.id,
-			l.seller_id,
-			l.title,
-			l.description,
-			l.price,
-			l.category,
-			COALESCE((
-				SELECT li.image_url
-				FROM listing_images li
-				WHERE li.listing_id = l.id
-				ORDER BY li.is_primary DESC, li.created_at ASC
-				LIMIT 1
-			), ''),
-			l.created_at
-		FROM listings l
-		WHERE l.id = $1
+		SELECT id, seller_id, title, description, price, category, created_at
+		FROM listings
+		WHERE id = $1
 	`
 
 	listing := &models.Listing{}
@@ -167,7 +123,6 @@ func (r *PostgresListingRepository) GetByID(ctx context.Context, id int64) (*mod
 		&listing.Description,
 		&listing.Price,
 		&listing.Category,
-		&listing.PrimaryImageURL,
 		&listing.CreatedAt,
 	)
 	if err != nil {
@@ -178,59 +133,6 @@ func (r *PostgresListingRepository) GetByID(ctx context.Context, id int64) (*mod
 	}
 
 	return listing, nil
-}
-
-func (r *PostgresListingRepository) GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error) {
-	const query = `
-		SELECT
-			l.id,
-			l.seller_id,
-			l.title,
-			l.description,
-			l.price,
-			l.category,
-			COALESCE((
-				SELECT li.image_url
-				FROM listing_images li
-				WHERE li.listing_id = l.id
-				ORDER BY li.is_primary DESC, li.created_at ASC
-				LIMIT 1
-			), ''),
-			l.created_at
-		FROM listings l
-		WHERE l.seller_id = $1
-		ORDER BY l.created_at DESC
-	`
-
-	rows, err := r.db.QueryContext(ctx, query, userID)
-	if err != nil {
-		return nil, fmt.Errorf("get listings by user: %w", err)
-	}
-	defer rows.Close()
-
-	items := make([]models.Listing, 0)
-	for rows.Next() {
-		var listing models.Listing
-		if err := rows.Scan(
-			&listing.ID,
-			&listing.UserID,
-			&listing.Title,
-			&listing.Description,
-			&listing.Price,
-			&listing.Category,
-			&listing.PrimaryImageURL,
-			&listing.CreatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan user listing: %w", err)
-		}
-		items = append(items, listing)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate user listings: %w", err)
-	}
-
-	return items, nil
 }
 
 func (r *PostgresListingRepository) UpdateByID(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error) {
@@ -290,40 +192,4 @@ func (r *PostgresListingRepository) DeleteByID(ctx context.Context, id int64) (i
 	}
 
 	return rowsAffected, nil
-}
-
-func buildListingFilters(params models.ListingListParams) (string, []interface{}) {
-	conditions := make([]string, 0)
-	args := make([]interface{}, 0)
-	placeholder := 1
-
-	if params.Category != "" {
-		conditions = append(conditions, fmt.Sprintf("LOWER(l.category) = LOWER($%d)", placeholder))
-		args = append(args, strings.TrimSpace(params.Category))
-		placeholder++
-	}
-
-	if params.MinPrice != nil {
-		conditions = append(conditions, fmt.Sprintf("l.price >= $%d", placeholder))
-		args = append(args, *params.MinPrice)
-		placeholder++
-	}
-
-	if params.MaxPrice != nil {
-		conditions = append(conditions, fmt.Sprintf("l.price <= $%d", placeholder))
-		args = append(args, *params.MaxPrice)
-		placeholder++
-	}
-
-	if params.Keyword != "" {
-		conditions = append(conditions, fmt.Sprintf("(l.title ILIKE $%d OR l.description ILIKE $%d)", placeholder, placeholder))
-		args = append(args, "%"+strings.TrimSpace(params.Keyword)+"%")
-		placeholder++
-	}
-
-	if len(conditions) == 0 {
-		return "", args
-	}
-
-	return " WHERE " + strings.Join(conditions, " AND "), args
 }

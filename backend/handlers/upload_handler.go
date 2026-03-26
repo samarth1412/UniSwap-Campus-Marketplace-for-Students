@@ -18,14 +18,10 @@ import (
 
 type UploadHandler struct {
 	listingImageService *services.ListingImageService
-	uploadService       *services.UploadService
 }
 
-func NewUploadHandler(listingImageService *services.ListingImageService, uploadService *services.UploadService) *UploadHandler {
-	return &UploadHandler{
-		listingImageService: listingImageService,
-		uploadService:       uploadService,
-	}
+func NewUploadHandler(listingImageService *services.ListingImageService) *UploadHandler {
+	return &UploadHandler{listingImageService: listingImageService}
 }
 
 func (h *UploadHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
@@ -34,26 +30,13 @@ func (h *UploadHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, ok := userIDFromContext(r)
-	if !ok {
+	if _, ok := userIDFromContext(r); !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid multipart form")
-		return
-	}
-
-	listingID, err := parseListingID(r.FormValue("listing_id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "listing_id must be a positive integer")
-		return
-	}
-
-	isPrimary, err := parseOptionalBool(r.FormValue("is_primary"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "is_primary must be true or false")
 		return
 	}
 
@@ -64,29 +47,15 @@ func (h *UploadHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	urlPath, err := saveMultipartFile(file, header, "", 0)
+	url, err := saveMultipartFile(file, header, "", 0)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to save file")
 		return
 	}
 
-	image, err := h.uploadService.SaveListingImage(r.Context(), userID, listingID, urlPath, isPrimary)
-	if err != nil {
-		_ = os.Remove(strings.TrimPrefix(urlPath, "/"))
-		switch {
-		case errors.Is(err, services.ErrValidation):
-			writeError(w, http.StatusBadRequest, err.Error())
-		case errors.Is(err, repository.ErrListingNotFound):
-			writeError(w, http.StatusNotFound, "listing not found")
-		case errors.Is(err, services.ErrForbidden):
-			writeError(w, http.StatusForbidden, "you can only upload images for your own listings")
-		default:
-			writeError(w, http.StatusInternalServerError, "failed to save image")
-		}
-		return
-	}
-
-	writeSuccess(w, http.StatusCreated, image)
+	writeSuccess(w, http.StatusCreated, map[string]string{
+		"url": url,
+	})
 }
 
 func (h *UploadHandler) UploadListingImages(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +146,6 @@ func saveMultipartFile(file multipart.File, header *multipart.FileHeader, prefix
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, file); err != nil {
-		_ = os.Remove(dstPath)
 		return "", err
 	}
 
@@ -197,31 +165,4 @@ func extractListingIDFromImagesPath(path string) (int64, bool) {
 	}
 
 	return id, true
-}
-
-func parseListingID(value string) (int64, error) {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return 0, errors.New("missing listing_id")
-	}
-
-	listingID, err := strconv.ParseInt(trimmed, 10, 64)
-	if err != nil || listingID <= 0 {
-		return 0, errors.New("invalid listing_id")
-	}
-
-	return listingID, nil
-}
-
-func parseOptionalBool(value string) (bool, error) {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return false, nil
-	}
-
-	parsed, err := strconv.ParseBool(trimmed)
-	if err != nil {
-		return false, err
-	}
-	return parsed, nil
 }
