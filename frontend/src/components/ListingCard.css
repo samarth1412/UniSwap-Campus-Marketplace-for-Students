@@ -1,0 +1,153 @@
+.listing-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  height: 100%;
+}
+
+.listing-card-link:hover .listing-card {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.12),
+    0 4px 8px rgba(15, 23, 42, 0.06);
+}
+
+.listing-card-link:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+.listing-card {
+  height: 100%;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e8e8ec;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.listing-card__image-wrap {
+  position: relative;
+  flex-shrink: 0;
+  height: 160px;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.listing-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.listing-card__wishlist {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.listing-card__wishlist:hover {
+  color: #e11d48;
+  background: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.listing-card__wishlist:active {
+  transform: scale(0.96);
+}
+
+.listing-card__wishlist:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+.listing-card__wishlist--active {
+  color: #e11d48;
+}
+
+.listing-card__wishlist--active:hover {
+  color: #be123c;
+}
+
+.listing-card__heart-svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  display: block;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listing-card__wishlist {
+    transition: none;
+  }
+
+  .listing-card__wishlist:hover,
+  .listing-card__wishlist:active {
+    transform: none;
+  }
+}
+
+.listing-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.1rem 1.15rem;
+  gap: 0.45rem;
+  min-height: 0;
+}
+
+.listing-card__category {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.listing-card__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #0f172a;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.listing-card__price {
+  margin-top: auto;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #047857;
+  letter-spacing: -0.02em;
+}
