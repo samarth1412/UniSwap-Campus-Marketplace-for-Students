@@ -16,6 +16,7 @@ type ListingRepository interface {
 	Create(ctx context.Context, listing *models.Listing) (*models.Listing, error)
 	GetAll(ctx context.Context, search string) ([]models.Listing, error)
 	GetByID(ctx context.Context, id int64) (*models.Listing, error)
+	GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error)
 	UpdateByID(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error)
 	DeleteByID(ctx context.Context, id int64) (int64, error)
 }
@@ -133,6 +134,59 @@ func (r *PostgresListingRepository) GetByID(ctx context.Context, id int64) (*mod
 	}
 
 	return listing, nil
+}
+
+func (r *PostgresListingRepository) GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error) {
+	const query = `
+		SELECT
+			l.id,
+			l.seller_id,
+			l.title,
+			l.description,
+			l.price,
+			l.category,
+			COALESCE((
+				SELECT li.image_url
+				FROM listing_images li
+				WHERE li.listing_id = l.id
+				ORDER BY li.is_primary DESC, li.created_at ASC
+				LIMIT 1
+			), ''),
+			l.created_at
+		FROM listings l
+		WHERE l.seller_id = $1
+		ORDER BY l.created_at DESC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get listings by user id: %w", err)
+	}
+	defer rows.Close()
+
+	listings := make([]models.Listing, 0)
+	for rows.Next() {
+		var listing models.Listing
+		if err := rows.Scan(
+			&listing.ID,
+			&listing.UserID,
+			&listing.Title,
+			&listing.Description,
+			&listing.Price,
+			&listing.Category,
+			&listing.PrimaryImageURL,
+			&listing.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan listing by user id: %w", err)
+		}
+		listings = append(listings, listing)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate listings by user id: %w", err)
+	}
+
+	return listings, nil
 }
 
 func (r *PostgresListingRepository) UpdateByID(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error) {
