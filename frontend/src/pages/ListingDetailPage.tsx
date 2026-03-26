@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
 import { MOCK_LISTINGS } from '../data/mockListings';
@@ -9,13 +9,16 @@ import { isAuthenticated } from '../hooks/useAuth';
  * Listing detail - full page for /listing/:id.
  * FE-9: Detail UI
  * FE-15: Report listing button UI + API call
+ * FE-17: Connect listing detail page to API
  */
 export function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const numericId = Number(id);
-  const listing: Listing | undefined = MOCK_LISTINGS.find((item) => item.id === numericId);
   const authenticated = isAuthenticated();
 
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reportSubmitting, setReportSubmitting] = useState(false);
@@ -23,17 +26,56 @@ export function ListingDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
 
-  if (!listing) {
-    return (
-      <div>
-        <p>
-          <Link to="">{'← Back'}</Link>
-        </p>
-        <h1>Listing not found</h1>
-        <p>The listing you are looking for does not exist.</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadListing() {
+      if (!Number.isFinite(numericId) || numericId <= 0) {
+        if (!cancelled) {
+          setListing(null);
+          setLoadError('Listing not found.');
+          setLoading(false);
+        }
+        return;
+      }
+
+      setLoading(true);
+      setLoadError(null);
+
+      try {
+        const response = await listingsApi.getById(numericId);
+        if (!response.data.success || !response.data.data) {
+          throw new Error(response.data.error || 'Failed to load listing');
+        }
+
+        if (!cancelled) {
+          setListing(response.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load listing detail', err);
+        const fallbackListing = MOCK_LISTINGS.find((item) => item.id === numericId) ?? null;
+
+        if (!cancelled) {
+          setListing(fallbackListing);
+          setLoadError(
+            fallbackListing
+              ? 'Unable to load the latest listing details from the server. Showing sample data.'
+              : 'Listing not found.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadListing();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [numericId]);
 
   const handleOpenReport = () => {
     setReportReason('');
@@ -62,6 +104,8 @@ export function ListingDetailPage() {
 
   const handleSubmitReport = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!listing) return;
+
     if (!reportReason.trim()) {
       setReportMessage('Please provide a reason for reporting this listing.');
       return;
@@ -84,11 +128,32 @@ export function ListingDetailPage() {
     }
   };
 
+  if (loading) {
+    return <p>Loading listing...</p>;
+  }
+
+  if (!listing) {
+    return (
+      <div>
+        <p>
+          <Link to="/">{'< Back'}</Link>
+        </p>
+        <h1>Listing not found</h1>
+        <p>{loadError ?? 'The listing you are looking for does not exist.'}</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <p>
-        <Link to="/">{'← Back to listings'}</Link>
+        <Link to="/">{'< Back to listings'}</Link>
       </p>
+      {loadError && (
+        <p style={{ margin: 0, color: '#b45309' }}>
+          {loadError}
+        </p>
+      )}
       <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 3fr)' }}>
         <div>
           <img
@@ -110,7 +175,7 @@ export function ListingDetailPage() {
           </span>
           <h1 style={{ margin: 0 }}>{listing.title}</h1>
           <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#059669' }}>
-            ₹{listing.price.toFixed(0)}
+            Rs. {listing.price.toFixed(0)}
           </span>
           <p style={{ maxWidth: '36rem', lineHeight: 1.6 }}>{listing.description}</p>
           <p style={{ marginTop: '0.5rem', color: '#4b5563' }}>
@@ -121,7 +186,7 @@ export function ListingDetailPage() {
               {deleteMessage}
             </p>
           )}
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
             {authenticated && (
               <>
                 <Link
@@ -216,7 +281,7 @@ export function ListingDetailPage() {
                 Reason
                 <select
                   value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value)}
+                  onChange={(event) => setReportReason(event.target.value)}
                   style={{
                     marginTop: '0.25rem',
                     width: '100%',
@@ -271,7 +336,7 @@ export function ListingDetailPage() {
                     opacity: reportSubmitting ? 0.8 : 1,
                   }}
                 >
-                  {reportSubmitting ? 'Submitting…' : 'Submit report'}
+                  {reportSubmitting ? 'Submitting...' : 'Submit report'}
                 </button>
               </div>
             </form>
@@ -340,4 +405,3 @@ export function ListingDetailPage() {
     </div>
   );
 }
-

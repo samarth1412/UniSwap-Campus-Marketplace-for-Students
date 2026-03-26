@@ -6,6 +6,7 @@ export { profileApi } from './profileApi';
 export type {
   ApiResponse,
   AuthResponse,
+  BackendListing,
   RegisterPayload,
   CreateListingPayload,
   UpdateListingPayload,

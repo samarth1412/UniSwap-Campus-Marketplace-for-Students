@@ -34,3 +34,14 @@ export interface UpdateListingPayload {
 export interface WishlistPayload {
   listing_id: number;
 }
+
+export interface BackendListing {
+  id: number;
+  user_id: number;
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  primary_image_url?: string;
+  created_at: string;
+}
