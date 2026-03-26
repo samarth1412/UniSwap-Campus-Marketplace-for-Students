@@ -1,1 +1,4 @@
 backend/uploads/
+backend/.cache-go/
+backend/.gocache/
+*.go.[0-9]*
