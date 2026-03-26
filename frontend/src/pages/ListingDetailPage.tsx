@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
 import { MOCK_LISTINGS } from '../data/mockListings';
@@ -13,6 +13,7 @@ import { isAuthenticated } from '../hooks/useAuth';
  */
 export function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const numericId = Number(id);
   const authenticated = isAuthenticated();
 
@@ -25,6 +26,7 @@ export function ListingDetailPage() {
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,12 +96,31 @@ export function ListingDetailPage() {
   };
 
   const handleCloseDelete = () => {
+    if (deleteSubmitting) return;
     setShowDeleteModal(false);
   };
 
-  const handleConfirmDelete = () => {
-    setDeleteMessage('Delete confirmed in the UI. Backend integration will be added in FE-21.');
-    setShowDeleteModal(false);
+  const handleConfirmDelete = async () => {
+    if (!listing) return;
+
+    setDeleteSubmitting(true);
+    setDeleteMessage(null);
+
+    try {
+      await listingsApi.remove(listing.id);
+      setShowDeleteModal(false);
+      navigate('/my-listings', {
+        replace: true,
+        state: { deletedMessage: 'Listing deleted successfully.' },
+      });
+    } catch (err: unknown) {
+      console.error('Failed to delete listing', err);
+      const ax = err as { response?: { data?: { error?: string } } };
+      setDeleteMessage(ax.response?.data?.error ?? 'Could not delete listing right now. Please try again.');
+      setShowDeleteModal(false);
+    } finally {
+      setDeleteSubmitting(false);
+    }
   };
 
   const handleSubmitReport = async (event: React.FormEvent) => {
@@ -368,12 +389,13 @@ export function ListingDetailPage() {
           >
             <h2 style={{ marginTop: 0, marginBottom: '0.75rem' }}>Delete listing?</h2>
             <p style={{ marginTop: 0, marginBottom: '1rem', color: '#4b5563', lineHeight: 1.5 }}>
-              This action will remove the listing from your marketplace view. Backend deletion will be connected in FE-21.
+              This action cannot be undone. The listing will be permanently removed from the marketplace.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button
                 type="button"
                 onClick={handleCloseDelete}
+                disabled={deleteSubmitting}
                 style={{
                   padding: '0.45rem 0.9rem',
                   borderRadius: '999px',
@@ -387,6 +409,7 @@ export function ListingDetailPage() {
               <button
                 type="button"
                 onClick={handleConfirmDelete}
+                disabled={deleteSubmitting}
                 style={{
                   padding: '0.45rem 0.9rem',
                   borderRadius: '999px',
@@ -394,9 +417,10 @@ export function ListingDetailPage() {
                   backgroundColor: '#dc2626',
                   color: '#fff',
                   cursor: 'pointer',
+                  opacity: deleteSubmitting ? 0.8 : 1,
                 }}
               >
-                Confirm delete
+                {deleteSubmitting ? 'Deleting...' : 'Confirm delete'}
               </button>
             </div>
           </div>
