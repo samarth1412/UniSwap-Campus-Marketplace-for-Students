@@ -46,15 +46,19 @@ func main() {
 	listingRepo := repository.NewPostgresListingRepository(db)
 	reportRepo := repository.NewPostgresReportRepository(db)
 	listingImageRepo := repository.NewPostgresListingImageRepository(db)
+	wishlistRepo := repository.NewPostgresWishlistRepository(db)
 
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	listingService := services.NewListingService(listingRepo)
 	reportService := services.NewReportService(reportRepo, listingRepo)
 	listingImageService := services.NewListingImageService(listingRepo, listingImageRepo)
+	wishlistService := services.NewWishlistService(wishlistRepo, listingRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	listingHandler := handlers.NewListingHandler(listingService, reportService)
 	uploadHandler := handlers.NewUploadHandler(listingImageService)
+	wishlistHandler := handlers.NewWishlistHandler(wishlistService)
+	userHandler := handlers.NewUserHandler(listingService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", a.healthCheck)
@@ -81,6 +85,9 @@ func main() {
 		listingHandler.ListingByIDRoutes(w, r)
 	}))
 	mux.Handle("/api/uploads/image", middleware.Auth(authService)(http.HandlerFunc(uploadHandler.UploadImage)))
+	mux.Handle("/api/wishlist", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.Wishlist)))
+	mux.Handle("/api/wishlist/", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.WishlistByID)))
+	mux.HandleFunc("/api/users/", userHandler.UserListings)
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	srv := &http.Server{

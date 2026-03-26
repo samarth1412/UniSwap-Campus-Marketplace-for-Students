@@ -44,6 +44,14 @@ func (s *ListingService) GetByID(ctx context.Context, listingID int64) (*models.
 	return s.listingRepo.GetByID(ctx, listingID)
 }
 
+func (s *ListingService) GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error) {
+	if userID <= 0 {
+		return nil, fmt.Errorf("%w: user id is required", ErrValidation)
+	}
+
+	return s.listingRepo.GetByUserID(ctx, userID)
+}
+
 func (s *ListingService) Update(ctx context.Context, actorUserID, listingID int64, req models.UpdateListingRequest) (*models.Listing, error) {
 	if err := validateListingFields(req.Title, req.Category, req.Price); err != nil {
 		return nil, err
