@@ -22,11 +22,32 @@ function App() {
       <WishlistProvider>
         <Layout>
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/wishlist" element={<WishlistPage />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/wishlist"
+              element={
+                <ProtectedRoute>
+                  <WishlistPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/listing/:id" element={<ListingDetailPage />} />
+            <Route
+              path="/listing/:id"
+              element={
+                <ProtectedRoute>
+                  <ListingDetailPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/create"
               element={
