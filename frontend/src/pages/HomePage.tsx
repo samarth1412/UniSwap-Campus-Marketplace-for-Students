@@ -16,7 +16,7 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [page, setPage] = useState(1);
@@ -52,7 +52,7 @@ export function HomePage() {
       try {
         const response = await listingsApi.getAll({
           search: debouncedSearchTerm || undefined,
-          category: categoryFilter === 'all' ? undefined : categoryFilter,
+          category: categoryFilter || undefined,
           min_price: parsedMinPrice,
           max_price: parsedMaxPrice,
           page,
@@ -121,6 +121,7 @@ export function HomePage() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
+            aria-label="Filter by category"
             style={{
               padding: '0.5rem 0.75rem',
               borderRadius: '999px',
@@ -128,7 +129,7 @@ export function HomePage() {
               minWidth: '160px',
             }}
           >
-            <option value="all">All categories</option>
+            <option value="">All categories</option>
             <option value="Books">Books</option>
             <option value="Electronics">Electronics</option>
             <option value="Furniture">Furniture</option>
