@@ -29,6 +29,16 @@ func (h *UserHandler) UserListings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	actorUserID, ok := userIDFromContext(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	if actorUserID != userID {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
 	listings, err := h.listingService.GetByUserID(r.Context(), userID)
 	if err != nil {
 		if errors.Is(err, services.ErrValidation) {

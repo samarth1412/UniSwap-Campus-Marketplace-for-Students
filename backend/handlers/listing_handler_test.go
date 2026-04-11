@@ -14,7 +14,8 @@ import (
 
 type listingRepoForHandlerTest struct {
 	createFn  func(ctx context.Context, listing *models.Listing) (*models.Listing, error)
-	getAllFn  func(ctx context.Context, search string) ([]models.Listing, error)
+	getAllFn  func(ctx context.Context, query models.ListingQuery) (*models.PaginatedListings, error)
+	getByUser func(ctx context.Context, userID int64) ([]models.Listing, error)
 	getByIDFn func(ctx context.Context, id int64) (*models.Listing, error)
 	updateFn  func(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error)
 	deleteFn  func(ctx context.Context, id int64) (int64, error)
@@ -27,11 +28,24 @@ func (r *listingRepoForHandlerTest) Create(ctx context.Context, listing *models.
 	return r.createFn(ctx, listing)
 }
 
-func (r *listingRepoForHandlerTest) GetAll(ctx context.Context, search string) ([]models.Listing, error) {
+func (r *listingRepoForHandlerTest) GetAll(ctx context.Context, query models.ListingQuery) (*models.PaginatedListings, error) {
 	if r.getAllFn == nil {
+		return &models.PaginatedListings{
+			Items:      []models.Listing{},
+			Page:       query.Page,
+			Limit:      query.Limit,
+			Total:      0,
+			TotalPages: 1,
+		}, nil
+	}
+	return r.getAllFn(ctx, query)
+}
+
+func (r *listingRepoForHandlerTest) GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error) {
+	if r.getByUser == nil {
 		return []models.Listing{}, nil
 	}
-	return r.getAllFn(ctx, search)
+	return r.getByUser(ctx, userID)
 }
 
 func (r *listingRepoForHandlerTest) GetByID(ctx context.Context, id int64) (*models.Listing, error) {
