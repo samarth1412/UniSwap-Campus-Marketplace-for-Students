@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Pagination } from '../components/Pagination';
+import { ListingCard } from '../components/ListingCard';
+import { MOCK_LISTINGS } from '../data/mockListings';
 import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
-import { MOCK_LISTINGS } from '../data/mockListings';
-import { Pagination } from '../components/Pagination';
 
 /**
  * Listing feed
@@ -17,15 +17,19 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-
   const [totalPages, setTotalPages] = useState(1);
 
+  const parsedMinPrice = minPrice.trim() === '' ? undefined : Number(minPrice);
+  const parsedMaxPrice = maxPrice.trim() === '' ? undefined : Number(maxPrice);
+
   useEffect(() => {
-    // New search/category always starts from page 1.
+    // New filter values always start from page 1.
     setPage(1);
-  }, [searchTerm, categoryFilter]);
+  }, [searchTerm, categoryFilter, minPrice, maxPrice]);
 
   const mockFilteredListings = useMemo(() => {
     return MOCK_LISTINGS.filter((listing) => {
@@ -37,9 +41,12 @@ export function HomePage() {
       const matchesCategory =
         categoryFilter === 'all' || listing.category.toLowerCase() === categoryFilter.toLowerCase();
 
-      return matchesSearch && matchesCategory;
+      const matchesMinPrice = parsedMinPrice === undefined || listing.price >= parsedMinPrice;
+      const matchesMaxPrice = parsedMaxPrice === undefined || listing.price <= parsedMaxPrice;
+
+      return matchesSearch && matchesCategory && matchesMinPrice && matchesMaxPrice;
     });
-  }, [searchTerm, categoryFilter]);
+  }, [searchTerm, categoryFilter, parsedMinPrice, parsedMaxPrice]);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +58,8 @@ export function HomePage() {
         const response = await listingsApi.getAll({
           search: searchTerm.trim() || undefined,
           category: categoryFilter === 'all' ? undefined : categoryFilter,
+          min_price: parsedMinPrice,
+          max_price: parsedMaxPrice,
           page,
           limit,
         });
@@ -86,7 +95,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [page, limit, searchTerm, categoryFilter, mockFilteredListings]);
+  }, [page, limit, searchTerm, categoryFilter, parsedMinPrice, parsedMaxPrice, mockFilteredListings]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -133,13 +142,35 @@ export function HomePage() {
             <option value="Furniture">Furniture</option>
             <option value="Other">Other</option>
           </select>
+          <input
+            type="number"
+            min="0"
+            placeholder="Min price"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            style={{
+              flex: '0 1 140px',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '999px',
+              border: '1px solid #ddd',
+            }}
+          />
+          <input
+            type="number"
+            min="0"
+            placeholder="Max price"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            style={{
+              flex: '0 1 140px',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '999px',
+              border: '1px solid #ddd',
+            }}
+          />
         </div>
-        {loading && <p style={{ margin: 0 }}>Loading listings…</p>}
-        {error && (
-          <p style={{ margin: 0, color: '#b45309' }}>
-            {error}
-          </p>
-        )}
+        {loading && <p style={{ margin: 0 }}>Loading listings...</p>}
+        {error && <p style={{ margin: 0, color: '#b45309' }}>{error}</p>}
       </header>
 
       {items.length === 0 && !loading ? (
@@ -153,64 +184,7 @@ export function HomePage() {
           }}
         >
           {items.map((listing) => (
-            <Link
-              key={listing.id}
-              to={`/listing/${listing.id}`}
-              style={{
-                textDecoration: 'none',
-                color: 'inherit',
-              }}
-            >
-              <article
-                style={{
-                  border: '1px solid #eee',
-                  borderRadius: '0.75rem',
-                  overflow: 'hidden',
-                  backgroundColor: '#fff',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  height: '100%',
-                }}
-              >
-                <div style={{ position: 'relative', paddingTop: '62%' }}>
-                  <img
-                    src={listing.imageUrl}
-                    alt={listing.title}
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                </div>
-                <div style={{ padding: '0.75rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      color: '#6b7280',
-                    }}
-                  >
-                    {listing.category}
-                  </span>
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {listing.title}
-                  </h2>
-                  <span style={{ fontWeight: 700, color: '#059669' }}>₹{listing.price.toFixed(0)}</span>
-                </div>
-              </article>
-            </Link>
+            <ListingCard key={listing.id} listing={listing} />
           ))}
         </section>
       )}
@@ -224,4 +198,3 @@ export function HomePage() {
     </div>
   );
 }
-
