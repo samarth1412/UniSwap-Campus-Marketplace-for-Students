@@ -54,6 +54,8 @@ export function HomePage() {
       if (parsedMinPrice === null || parsedMaxPrice === null) {
         setError('Price filters must be valid non-negative numbers.');
         setItems([]);
+        setTotalItems(0);
+        setPage(1);
         setTotalPages(1);
         setLoading(false);
         return;
@@ -66,6 +68,8 @@ export function HomePage() {
       ) {
         setError('Min price cannot be greater than max price.');
         setItems([]);
+        setTotalItems(0);
+        setPage(1);
         setTotalPages(1);
         setLoading(false);
         return;
@@ -85,10 +89,12 @@ export function HomePage() {
         }
 
         if (!cancelled) {
+          const nextTotalPages = Math.max(1, response.data.data.total_pages);
+          const nextPage = Math.min(Math.max(1, response.data.data.page), nextTotalPages);
           setItems(response.data.data.items);
           setTotalItems(response.data.data.total);
-          setPage(response.data.data.page);
-          setTotalPages(Math.max(1, response.data.data.total_pages));
+          setPage(nextPage);
+          setTotalPages(nextTotalPages);
         }
       } catch (err) {
         if (!cancelled) {
@@ -96,6 +102,7 @@ export function HomePage() {
           setError('Unable to load listings right now. Check the server and try again.');
           setItems([]);
           setTotalItems(0);
+          setPage(1);
           setTotalPages(1);
         }
       } finally {
