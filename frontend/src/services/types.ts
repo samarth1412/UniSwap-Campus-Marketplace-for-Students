@@ -21,7 +21,6 @@ export interface CreateListingPayload {
   description: string;
   price: number;
   category: string;
-  imageUrl?: string;
 }
 
 export interface UpdateListingPayload {
@@ -29,6 +28,15 @@ export interface UpdateListingPayload {
   description: string;
   price: number;
   category: string;
+}
+
+export interface ListingQueryParams {
+  search?: string;
+  category?: string;
+  min_price?: number;
+  max_price?: number;
+  page?: number;
+  limit?: number;
 }
 
 export interface WishlistPayload {
@@ -52,6 +60,14 @@ export interface BackendListing {
   category: string;
   primary_image_url?: string;
   created_at: string;
+}
+
+export interface BackendPaginatedListings {
+  items: BackendListing[];
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
 }
 
 /** Single row from GET /wishlist. */
