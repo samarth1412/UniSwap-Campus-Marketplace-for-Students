@@ -1,8 +1,6 @@
 import axios from 'axios';
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -13,19 +11,7 @@ import type { Listing } from '../types/listing';
 import { getToken } from '../hooks/useAuth';
 import { wishlistApi } from '../services/wishlistApi';
 import type { ApiResponse } from '../services/types';
-
-type WishlistContextValue = {
-  savedIds: number[];
-  wishlistListings: Listing[];
-  loading: boolean;
-  error: string | null;
-  togglingListingId: number | null;
-  isWishlisted: (listingId: number) => boolean;
-  toggleWishlist: (listingId: number) => Promise<void>;
-  refreshWishlist: () => Promise<void>;
-};
-
-const WishlistContext = createContext<WishlistContextValue | undefined>(undefined);
+import { WishlistContext, type WishlistContextValue } from './WishlistContextCore';
 
 function getErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
@@ -157,10 +143,4 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
-}
-
-export function useWishlist() {
-  const ctx = useContext(WishlistContext);
-  if (!ctx) throw new Error('useWishlist must be used within WishlistProvider');
-  return ctx;
 }
