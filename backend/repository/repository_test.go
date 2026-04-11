@@ -88,7 +88,7 @@ func TestListingRepositoryMethodsReturnErrorWhenDBClosed(t *testing.T) {
 		t.Fatalf("expected create listing wrapped error, got %v", err)
 	}
 
-	_, err = repo.GetAll(context.Background(), "")
+	_, err = repo.GetAll(context.Background(), models.ListingQuery{Page: 1, Limit: 10})
 	if err == nil || !strings.Contains(err.Error(), "get listings") {
 		t.Fatalf("expected get listings wrapped error, got %v", err)
 	}
