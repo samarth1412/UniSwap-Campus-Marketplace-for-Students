@@ -11,7 +11,8 @@ import (
 
 type listingRepoStub struct {
 	createFn   func(ctx context.Context, listing *models.Listing) (*models.Listing, error)
-	getAllFn   func(ctx context.Context, search string) ([]models.Listing, error)
+	getAllFn   func(ctx context.Context, query models.ListingQuery) (*models.PaginatedListings, error)
+	getByUser  func(ctx context.Context, userID int64) ([]models.Listing, error)
 	getByIDFn  func(ctx context.Context, id int64) (*models.Listing, error)
 	updateByID func(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error)
 	deleteByID func(ctx context.Context, id int64) (int64, error)
@@ -21,8 +22,12 @@ func (r *listingRepoStub) Create(ctx context.Context, listing *models.Listing) (
 	return r.createFn(ctx, listing)
 }
 
-func (r *listingRepoStub) GetAll(ctx context.Context, search string) ([]models.Listing, error) {
-	return r.getAllFn(ctx, search)
+func (r *listingRepoStub) GetAll(ctx context.Context, query models.ListingQuery) (*models.PaginatedListings, error) {
+	return r.getAllFn(ctx, query)
+}
+
+func (r *listingRepoStub) GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error) {
+	return r.getByUser(ctx, userID)
 }
 
 func (r *listingRepoStub) GetByID(ctx context.Context, id int64) (*models.Listing, error) {
