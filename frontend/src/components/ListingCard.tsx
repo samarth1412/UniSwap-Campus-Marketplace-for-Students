@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import type { Listing } from '../types/listing';
-import { formatUsdFromInr } from '../utils/currency';
-import { useWishlist } from '../context/WishlistContext';
+import { formatUsd } from '../utils/currency';
+import { useWishlist } from '../context/useWishlist';
 import './ListingCard.css';
 
 type ListingCardProps = {
@@ -73,7 +73,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         <div className="listing-card__body">
           <span className="listing-card__category">{listing.category}</span>
           <h2 className="listing-card__title">{listing.title}</h2>
-          <span className="listing-card__price">{formatUsdFromInr(listing.price)}</span>
+          <span className="listing-card__price">{formatUsd(listing.price)}</span>
         </div>
       </article>
     </Link>
