@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pagination } from '../components/Pagination';
 import { ListingCard } from '../components/ListingCard';
-import { MOCK_LISTINGS } from '../data/mockListings';
 import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
 
@@ -31,29 +30,13 @@ export function HomePage() {
     setPage(1);
   }, [searchTerm, categoryFilter, minPrice, maxPrice]);
 
-  const mockFilteredListings = useMemo(() => {
-    return MOCK_LISTINGS.filter((listing) => {
-      const matchesSearch =
-        searchTerm.trim().length === 0 ||
-        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        listing.description.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesCategory =
-        categoryFilter === 'all' || listing.category.toLowerCase() === categoryFilter.toLowerCase();
-
-      const matchesMinPrice = parsedMinPrice === undefined || listing.price >= parsedMinPrice;
-      const matchesMaxPrice = parsedMaxPrice === undefined || listing.price <= parsedMaxPrice;
-
-      return matchesSearch && matchesCategory && matchesMinPrice && matchesMaxPrice;
-    });
-  }, [searchTerm, categoryFilter, parsedMinPrice, parsedMaxPrice]);
-
   useEffect(() => {
     let cancelled = false;
 
     async function loadListings() {
       setLoading(true);
       setError(null);
+
       try {
         const response = await listingsApi.getAll({
           search: searchTerm.trim() || undefined,
@@ -69,19 +52,15 @@ export function HomePage() {
 
         if (!cancelled) {
           setItems(response.data.data.items);
+          setPage(response.data.data.page);
           setTotalPages(Math.max(1, response.data.data.total_pages));
         }
       } catch (err) {
-        // Fallback to mocked data if backend is not ready.
         if (!cancelled) {
-          console.error('Failed to load listings, using mock data instead:', err);
-          setError('Unable to load listings from server. Showing sample data.');
-          const total = mockFilteredListings.length;
-          const nextTotalPages = Math.max(1, Math.ceil(total / limit));
-          const start = (page - 1) * limit;
-          const end = start + limit;
-          setItems(mockFilteredListings.slice(start, end));
-          setTotalPages(nextTotalPages);
+          console.error('Failed to load listings', err);
+          setError('Unable to load listings from server.');
+          setItems([]);
+          setTotalPages(1);
         }
       } finally {
         if (!cancelled) {
@@ -95,7 +74,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [page, limit, searchTerm, categoryFilter, parsedMinPrice, parsedMaxPrice, mockFilteredListings]);
+  }, [page, limit, searchTerm, categoryFilter, parsedMinPrice, parsedMaxPrice]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
