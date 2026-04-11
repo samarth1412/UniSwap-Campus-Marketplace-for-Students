@@ -23,8 +23,8 @@ export function HomePage() {
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
 
-  const parsedMinPrice = minPrice.trim() === '' ? undefined : Number(minPrice);
-  const parsedMaxPrice = maxPrice.trim() === '' ? undefined : Number(maxPrice);
+  const parsedMinPrice = parsePriceFilter(minPrice);
+  const parsedMaxPrice = parsePriceFilter(maxPrice);
 
   useEffect(() => {
     const nextValue = searchTerm.trim();
@@ -48,6 +48,26 @@ export function HomePage() {
     async function loadListings() {
       setLoading(true);
       setError(null);
+
+      if (parsedMinPrice === null || parsedMaxPrice === null) {
+        setError('Price filters must be valid non-negative numbers.');
+        setItems([]);
+        setTotalPages(1);
+        setLoading(false);
+        return;
+      }
+
+      if (
+        parsedMinPrice !== undefined &&
+        parsedMaxPrice !== undefined &&
+        parsedMinPrice > parsedMaxPrice
+      ) {
+        setError('Min price cannot be greater than max price.');
+        setItems([]);
+        setTotalPages(1);
+        setLoading(false);
+        return;
+      }
 
       try {
         const response = await listingsApi.getAll({
@@ -141,6 +161,7 @@ export function HomePage() {
             placeholder="Min price"
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
+            aria-label="Minimum price"
             style={{
               flex: '0 1 140px',
               padding: '0.5rem 0.75rem',
@@ -154,6 +175,7 @@ export function HomePage() {
             placeholder="Max price"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
+            aria-label="Maximum price"
             style={{
               flex: '0 1 140px',
               padding: '0.5rem 0.75rem',
@@ -190,4 +212,16 @@ export function HomePage() {
       />
     </div>
   );
+}
+
+function parsePriceFilter(value: string): number | undefined | null {
+  const trimmed = value.trim();
+  if (trimmed === '') return undefined;
+
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return parsed;
 }
