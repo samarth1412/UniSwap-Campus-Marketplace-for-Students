@@ -46,11 +46,13 @@ func main() {
 	listingRepo := repository.NewPostgresListingRepository(db)
 	listingImageRepo := repository.NewPostgresListingImageRepository(db)
 	wishlistRepo := repository.NewPostgresWishlistRepository(db)
+	reportRepo := repository.NewPostgresReportRepository(db)
 
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	listingService := services.NewListingService(listingRepo)
 	listingImageService := services.NewListingImageService(listingRepo, listingImageRepo)
 	wishlistService := services.NewWishlistService(wishlistRepo, listingRepo)
+	reportService := services.NewReportService(reportRepo, listingRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	listingHandler := handlers.NewListingHandler(listingService, reportService)
@@ -90,7 +92,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),
-		Handler:      mux,
+		Handler:      withCORS(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -119,5 +121,20 @@ func (a *app) healthCheck(w http.ResponseWriter, r *http.Request) {
 
 	apiresponse.WriteSuccess(w, http.StatusOK, map[string]string{
 		"status": "ok",
+	})
+}
+
+func withCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
