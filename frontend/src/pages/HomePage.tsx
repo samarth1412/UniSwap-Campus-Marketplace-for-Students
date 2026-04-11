@@ -15,6 +15,7 @@ export function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
@@ -26,9 +27,20 @@ export function HomePage() {
   const parsedMaxPrice = maxPrice.trim() === '' ? undefined : Number(maxPrice);
 
   useEffect(() => {
+    const nextValue = searchTerm.trim();
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchTerm(nextValue);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [searchTerm]);
+
+  useEffect(() => {
     // New filter values always start from page 1.
     setPage(1);
-  }, [searchTerm, categoryFilter, minPrice, maxPrice]);
+  }, [debouncedSearchTerm, categoryFilter, minPrice, maxPrice]);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,7 +51,7 @@ export function HomePage() {
 
       try {
         const response = await listingsApi.getAll({
-          search: searchTerm.trim() || undefined,
+          search: debouncedSearchTerm || undefined,
           category: categoryFilter === 'all' ? undefined : categoryFilter,
           min_price: parsedMinPrice,
           max_price: parsedMaxPrice,
@@ -74,7 +86,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [page, limit, searchTerm, categoryFilter, parsedMinPrice, parsedMaxPrice]);
+  }, [page, limit, debouncedSearchTerm, categoryFilter, parsedMinPrice, parsedMaxPrice]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -98,6 +110,7 @@ export function HomePage() {
             placeholder="Search by title or description"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search listings"
             style={{
               flex: '1 1 220px',
               padding: '0.5rem 0.75rem',
