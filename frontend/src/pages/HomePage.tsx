@@ -14,6 +14,8 @@ export function HomePage() {
   const [items, setItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
+  const [reloadCount, setReloadCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -84,14 +86,16 @@ export function HomePage() {
 
         if (!cancelled) {
           setItems(response.data.data.items);
+          setTotalItems(response.data.data.total);
           setPage(response.data.data.page);
           setTotalPages(Math.max(1, response.data.data.total_pages));
         }
       } catch (err) {
         if (!cancelled) {
           console.error('Failed to load listings', err);
-          setError('Unable to load listings from server.');
+          setError('Unable to load listings right now. Check the server and try again.');
           setItems([]);
+          setTotalItems(0);
           setTotalPages(1);
         }
       } finally {
@@ -106,7 +110,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [page, limit, debouncedSearchTerm, categoryFilter, parsedMinPrice, parsedMaxPrice]);
+  }, [page, limit, debouncedSearchTerm, categoryFilter, parsedMinPrice, parsedMaxPrice, reloadCount]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -114,7 +118,7 @@ export function HomePage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1 style={{ margin: 0 }}>Listings</h1>
           <span style={{ fontSize: '0.9rem', color: '#666' }}>
-            Browse items from your campus community.
+            {loading ? 'Loading listings...' : `${totalItems} listing${totalItems === 1 ? '' : 's'} found`}
           </span>
         </div>
         <div
@@ -184,12 +188,53 @@ export function HomePage() {
             }}
           />
         </div>
-        {loading && <p style={{ margin: 0 }}>Loading listings...</p>}
-        {error && <p style={{ margin: 0, color: '#b45309' }}>{error}</p>}
+        {loading && <p style={{ margin: 0, color: '#4b5563' }}>Loading listings...</p>}
+        {error && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              padding: '0.9rem 1rem',
+              borderRadius: '0.75rem',
+              border: '1px solid #fed7aa',
+              backgroundColor: '#fff7ed',
+            }}
+          >
+            <p style={{ margin: 0, color: '#b45309' }}>{error}</p>
+            <button
+              type="button"
+              onClick={() => setReloadCount((count) => count + 1)}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '999px',
+                border: '1px solid #fdba74',
+                backgroundColor: '#fff',
+                color: '#9a3412',
+                cursor: 'pointer',
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
       </header>
 
-      {items.length === 0 && !loading ? (
-        <p>No listings match your search yet.</p>
+      {items.length === 0 && !loading && !error ? (
+        <div
+          style={{
+            padding: '1.5rem',
+            borderRadius: '0.9rem',
+            border: '1px solid #e5e7eb',
+            backgroundColor: '#fafafa',
+          }}
+        >
+          <h2 style={{ marginTop: 0, marginBottom: '0.5rem' }}>No listings found</h2>
+          <p style={{ margin: 0, color: '#4b5563' }}>
+            Try changing your search text or clearing one of the filters.
+          </p>
+        </div>
       ) : (
         <section
           style={{
