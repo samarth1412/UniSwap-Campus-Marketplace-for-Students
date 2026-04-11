@@ -87,7 +87,7 @@ func main() {
 	mux.Handle("/api/uploads/image", middleware.Auth(authService)(http.HandlerFunc(uploadHandler.UploadImage)))
 	mux.Handle("/api/wishlist", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.Wishlist)))
 	mux.Handle("/api/wishlist/", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.WishlistByID)))
-	mux.HandleFunc("/api/users/", userHandler.UserListings)
+	mux.Handle("/api/users/", middleware.Auth(authService)(http.HandlerFunc(userHandler.UserListings)))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	srv := &http.Server{
