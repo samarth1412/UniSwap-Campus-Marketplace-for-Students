@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { Listing } from '../types/listing';
 import { profileApi } from '../services/api';
+import { formatUsd } from '../utils/currency';
 
 export function MyListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -120,7 +121,7 @@ export function MyListingsPage() {
                   {listing.category}
                 </span>
                 <h2 style={{ margin: 0, fontSize: '1rem' }}>{listing.title}</h2>
-                <p style={{ margin: 0, color: '#059669', fontWeight: 700 }}>Rs. {listing.price.toFixed(0)}</p>
+                <p style={{ margin: 0, color: '#059669', fontWeight: 700 }}>{formatUsd(listing.price)}</p>
                 <p style={{ margin: 0, color: '#4b5563', lineHeight: 1.5 }}>{listing.description}</p>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                   <Link
