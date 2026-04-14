@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
-import { formatUsd } from '../utils/currency';
 
 /**
  * Listing detail - full page for /listing/:id.
@@ -177,7 +176,7 @@ export function ListingDetailPage() {
           </span>
           <h1 style={{ margin: 0 }}>{listing.title}</h1>
           <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#059669' }}>
-            {formatUsd(listing.price)}
+            Rs. {listing.price.toFixed(0)}
           </span>
           <p style={{ maxWidth: '36rem', lineHeight: 1.6 }}>{listing.description}</p>
           <p style={{ marginTop: '0.5rem', color: '#4b5563' }}>
