@@ -24,6 +24,8 @@ export function ListingDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
+  const fallbackImage = 'https://placehold.co/900x620?text=No+Image+Available';
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +50,7 @@ export function ListingDetailPage() {
 
         if (!cancelled) {
           setListing(response.data.data);
+          setImageFailed(false);
         }
       } catch (err) {
         console.error('Failed to load listing detail', err);
@@ -158,10 +161,16 @@ export function ListingDetailPage() {
       >
         <div>
           <img
-            src={listing.imageUrl}
+            src={imageFailed || !listing.imageUrl?.trim() ? fallbackImage : listing.imageUrl}
             alt={listing.title}
             style={{ width: '100%', maxWidth: '480px', borderRadius: '0.75rem', border: '1px solid #eee' }}
+            onError={() => setImageFailed(true)}
           />
+          {imageFailed && (
+            <p style={{ marginTop: '0.5rem', marginBottom: 0, color: '#6b7280', fontSize: '0.9rem' }}>
+              Original image could not be loaded, so a fallback image is shown.
+            </p>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <span

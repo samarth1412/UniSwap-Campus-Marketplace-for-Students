@@ -9,6 +9,8 @@ type ListingCardProps = {
   listing: Listing;
 };
 
+const FALLBACK_LISTING_IMAGE = 'https://placehold.co/640x420?text=No+Image';
+
 function HeartOutlineIcon() {
   return (
     <svg className="listing-card__heart-svg" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -37,6 +39,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   const { isWishlisted, toggleWishlist, togglingListingId } = useWishlist();
   const wishlisted = isWishlisted(listing.id);
   const toggling = togglingListingId === listing.id;
+  const imageSrc = listing.imageUrl?.trim() ? listing.imageUrl : FALLBACK_LISTING_IMAGE;
 
   const handleWishlistClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -53,10 +56,16 @@ export function ListingCard({ listing }: ListingCardProps) {
       <article className="listing-card">
         <div className="listing-card__image-wrap">
           <img
-            src={listing.imageUrl}
+            src={imageSrc}
             alt={listing.title}
             className="listing-card__image"
             loading="lazy"
+            onError={(event) => {
+              const image = event.currentTarget;
+              if (image.src !== FALLBACK_LISTING_IMAGE) {
+                image.src = FALLBACK_LISTING_IMAGE;
+              }
+            }}
           />
           <button
             type="button"
