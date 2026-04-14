@@ -122,7 +122,10 @@ export function EditListingPage() {
         }
       }
 
-      navigate(`/listing/${numericId}`, { replace: true });
+      navigate(`/listing/${numericId}`, {
+        replace: true,
+        state: { flowMessage: 'Listing updated successfully.' },
+      });
     } catch (err: unknown) {
       console.error('Failed to update listing', err);
       const ax = err as { response?: { data?: { error?: string } } };
@@ -208,6 +211,8 @@ export function EditListingPage() {
             file={imageFile}
             onFileChange={setImageFile}
             existingImageUrl={existingImageUrl}
+            disabled={submitting}
+            disabledReason="Please wait while your listing updates are being saved."
           />
         </div>
 
@@ -236,7 +241,7 @@ export function EditListingPage() {
               backgroundColor: '#2563eb',
               color: '#fff',
               fontWeight: 600,
-              cursor: 'pointer',
+              cursor: submitting ? 'not-allowed' : 'pointer',
               opacity: submitting ? 0.8 : 1,
             }}
           >

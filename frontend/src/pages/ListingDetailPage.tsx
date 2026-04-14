@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { listingsApi } from '../services/api';
 import type { Listing } from '../types/listing';
 
@@ -11,6 +11,7 @@ import type { Listing } from '../types/listing';
  */
 export function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const numericId = Number(id);
 
@@ -26,6 +27,15 @@ export function ListingDetailPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const fallbackImage = 'https://placehold.co/900x620?text=No+Image+Available';
+  const [flowMessage, setFlowMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const state = location.state as { flowMessage?: string } | null;
+    if (state?.flowMessage) {
+      setFlowMessage(state.flowMessage);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,6 +162,38 @@ export function ListingDetailPage() {
         <Link to="/">{'< Back to listings'}</Link>
       </p>
       {error && <p style={{ margin: 0, color: '#b91c1c' }}>{error}</p>}
+      {flowMessage && (
+        <div
+          style={{
+            margin: 0,
+            padding: '0.7rem 0.9rem',
+            border: '1px solid #a7f3d0',
+            backgroundColor: '#ecfdf5',
+            borderRadius: '0.6rem',
+            color: '#065f46',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '0.75rem',
+          }}
+        >
+          <span>{flowMessage}</span>
+          <button
+            type="button"
+            onClick={() => setFlowMessage(null)}
+            style={{
+              border: '1px solid #a7f3d0',
+              backgroundColor: '#fff',
+              color: '#065f46',
+              borderRadius: '999px',
+              padding: '0.25rem 0.6rem',
+              cursor: 'pointer',
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <div
         style={{
           display: 'grid',

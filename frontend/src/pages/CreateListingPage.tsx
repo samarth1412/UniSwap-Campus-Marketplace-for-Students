@@ -54,7 +54,9 @@ export function CreateListingPage() {
         }
       }
 
-      navigate(`/listing/${response.data.data.id}`);
+      navigate(`/listing/${response.data.data.id}`, {
+        state: { flowMessage: 'Listing created successfully.' },
+      });
     } catch (err) {
       console.error('Failed to create listing', err);
       setError('Could not create listing right now. Please try again.');
@@ -163,6 +165,8 @@ export function CreateListingPage() {
             label="Listing photo (optional)"
             file={imageFile}
             onFileChange={setImageFile}
+            disabled={submitting}
+            disabledReason="Please wait while your listing is being created."
           />
         </div>
 
@@ -183,7 +187,7 @@ export function CreateListingPage() {
               backgroundColor: '#16a34a',
               color: '#fff',
               fontWeight: 600,
-              cursor: 'pointer',
+              cursor: submitting ? 'not-allowed' : 'pointer',
               opacity: submitting ? 0.8 : 1,
             }}
           >
