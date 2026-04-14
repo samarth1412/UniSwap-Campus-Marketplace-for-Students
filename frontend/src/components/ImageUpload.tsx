@@ -9,11 +9,20 @@ function isAllowedImage(file: File): boolean {
   return /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(name);
 }
 
+function formatBytes(size: number): string {
+  if (size < 1024) return `${size} B`;
+  const kb = size / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(2)} MB`;
+}
+
 export interface ImageUploadProps {
   label?: string;
   file: File | null;
   onFileChange: (file: File | null) => void;
   existingImageUrl?: string | null;
+  disabled?: boolean;
+  disabledReason?: string;
   /** Max file size in bytes (default 5 MB). */
   maxSizeBytes?: number;
 }
@@ -23,12 +32,15 @@ export function ImageUpload({
   file,
   onFileChange,
   existingImageUrl = null,
+  disabled = false,
+  disabledReason = 'Image upload is temporarily disabled.',
   maxSizeBytes = DEFAULT_MAX_BYTES,
 }: ImageUploadProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const previewUrl = useMemo(() => {
     if (!file) return null;
@@ -45,23 +57,27 @@ export function ImageUpload({
   const applyFile = useCallback(
     (next: File | null) => {
       setLocalError(null);
+      setStatusMessage(null);
       if (!next) {
         onFileChange(null);
         if (inputRef.current) inputRef.current.value = '';
         return;
       }
       if (!isAllowedImage(next)) {
-        setLocalError('Please choose an image file (e.g. JPG, PNG, GIF, or WebP).');
+        setLocalError(`"${next.name}" is not a supported image. Please choose JPG, PNG, GIF, or WebP.`);
         if (inputRef.current) inputRef.current.value = '';
         return;
       }
       if (next.size > maxSizeBytes) {
         const mb = Math.round(maxSizeBytes / (1024 * 1024));
-        setLocalError(`Image must be ${mb} MB or smaller.`);
+        setLocalError(
+          `Image is too large (${formatBytes(next.size)}). Maximum allowed size is ${mb} MB.`
+        );
         if (inputRef.current) inputRef.current.value = '';
         return;
       }
       onFileChange(next);
+      setStatusMessage(`Selected "${next.name}" (${formatBytes(next.size)}).`);
     },
     [maxSizeBytes, onFileChange]
   );
@@ -73,12 +89,15 @@ export function ImageUpload({
 
   const handleDrop = (event: React.DragEvent) => {
     event.preventDefault();
+    if (disabled) return;
     setDragOver(false);
     const dropped = event.dataTransfer.files?.[0];
     if (dropped) applyFile(dropped);
   };
 
-  const openPicker = () => inputRef.current?.click();
+  const openPicker = () => {
+    if (!disabled) inputRef.current?.click();
+  };
 
   return (
     <div className="image-upload">
@@ -96,15 +115,19 @@ export function ImageUpload({
         type="file"
         accept="image/*"
         aria-labelledby={`${inputId}-label`}
+        disabled={disabled}
         onChange={handleInputChange}
       />
 
       <div
         role="button"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
         className={`image-upload__drop${dragOver ? ' image-upload__drop--drag' : ''}${localError ? ' image-upload__drop--error' : ''}`}
+        style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}
         onClick={openPicker}
         onKeyDown={(e) => {
+          if (disabled) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             openPicker();
@@ -112,13 +135,16 @@ export function ImageUpload({
         }}
         onDragEnter={(e) => {
           e.preventDefault();
+          if (disabled) return;
           setDragOver(true);
         }}
         onDragOver={(e) => {
           e.preventDefault();
+          if (disabled) return;
           e.dataTransfer.dropEffect = 'copy';
         }}
         onDragLeave={(e) => {
+          if (disabled) return;
           if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false);
         }}
         onDrop={handleDrop}
@@ -140,6 +166,7 @@ export function ImageUpload({
             <button
               type="button"
               className="image-upload__remove"
+              disabled={disabled}
               onClick={(e) => {
                 e.stopPropagation();
                 applyFile(null);
@@ -147,11 +174,32 @@ export function ImageUpload({
             >
               {file ? 'Remove' : 'Choose another'}
             </button>
+            <button
+              type="button"
+              className="image-upload__remove"
+              disabled={disabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                openPicker();
+              }}
+            >
+              Replace
+            </button>
           </div>
         )}
       </div>
 
       {localError && <p className="image-upload__error">{localError}</p>}
+      {!localError && statusMessage && (
+        <p className="image-upload__hint" aria-live="polite">
+          {statusMessage}
+        </p>
+      )}
+      {disabled && (
+        <p className="image-upload__hint" aria-live="polite">
+          {disabledReason}
+        </p>
+      )}
 
       {displayedImageUrl && (
         <div className="image-upload__preview-wrap">
