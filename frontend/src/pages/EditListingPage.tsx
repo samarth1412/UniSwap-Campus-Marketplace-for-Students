@@ -17,6 +17,9 @@ export function EditListingPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [listingExists, setListingExists] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+
+  const isPlaceholderImage = (url: string): boolean => url.includes('placehold.co/');
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +49,7 @@ export function EditListingPage() {
           setDescription(data.description);
           setPrice(String(data.price));
           setCategory(data.category);
+          setExistingImageUrl(isPlaceholderImage(data.imageUrl) ? null : data.imageUrl);
           setListingExists(true);
         }
       } catch (err) {
@@ -203,6 +207,7 @@ export function EditListingPage() {
             label="Replace listing image"
             file={imageFile}
             onFileChange={setImageFile}
+            existingImageUrl={existingImageUrl}
           />
         </div>
 

@@ -13,6 +13,7 @@ export interface ImageUploadProps {
   label?: string;
   file: File | null;
   onFileChange: (file: File | null) => void;
+  existingImageUrl?: string | null;
   /** Max file size in bytes (default 5 MB). */
   maxSizeBytes?: number;
 }
@@ -21,6 +22,7 @@ export function ImageUpload({
   label = 'Listing image',
   file,
   onFileChange,
+  existingImageUrl = null,
   maxSizeBytes = DEFAULT_MAX_BYTES,
 }: ImageUploadProps) {
   const inputId = useId();
@@ -32,6 +34,7 @@ export function ImageUpload({
     if (!file) return null;
     return URL.createObjectURL(file);
   }, [file]);
+  const displayedImageUrl = previewUrl ?? existingImageUrl;
 
   useEffect(() => {
     return () => {
@@ -120,16 +123,20 @@ export function ImageUpload({
         }}
         onDrop={handleDrop}
       >
-        {!file ? (
+        {!file && !existingImageUrl ? (
           <>
             <p className="image-upload__cta">Drop an image here or click to browse</p>
             <p className="image-upload__cta-secondary">Your photo helps buyers trust the listing.</p>
           </>
         ) : (
           <div className="image-upload__file-row">
-            <p className="image-upload__file-name" title={file.name}>
-              Selected: {file.name}
-            </p>
+            {file ? (
+              <p className="image-upload__file-name" title={file.name}>
+                Selected: {file.name}
+              </p>
+            ) : (
+              <p className="image-upload__file-name">Current image selected. Choose a new one to replace it.</p>
+            )}
             <button
               type="button"
               className="image-upload__remove"
@@ -138,7 +145,7 @@ export function ImageUpload({
                 applyFile(null);
               }}
             >
-              Remove
+              {file ? 'Remove' : 'Choose another'}
             </button>
           </div>
         )}
@@ -146,12 +153,12 @@ export function ImageUpload({
 
       {localError && <p className="image-upload__error">{localError}</p>}
 
-      {previewUrl && (
+      {displayedImageUrl && (
         <div className="image-upload__preview-wrap">
           <img
             className="image-upload__preview"
-            src={previewUrl}
-            alt="Preview of selected listing image"
+            src={displayedImageUrl}
+            alt={file ? 'Preview of selected listing image' : 'Current listing image'}
           />
         </div>
       )}
