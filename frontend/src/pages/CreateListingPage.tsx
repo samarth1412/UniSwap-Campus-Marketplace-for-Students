@@ -8,6 +8,7 @@ import { ImageUpload } from '../components/ImageUpload';
  * FE-10: Form UI
  * FE-11: Image upload component
  * FE-12: Connect to backend
+ * FE-31: Image upload UI (create flow)
  */
 export function CreateListingPage() {
   const navigate = useNavigate();
@@ -158,7 +159,11 @@ export function CreateListingPage() {
         </div>
 
         <div style={{ marginTop: '0.5rem' }}>
-          <ImageUpload file={imageFile} onFileChange={setImageFile} />
+          <ImageUpload
+            label="Listing photo (optional)"
+            file={imageFile}
+            onFileChange={setImageFile}
+          />
         </div>
 
         {error && (
