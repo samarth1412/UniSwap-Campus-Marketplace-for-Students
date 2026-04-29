@@ -12,10 +12,11 @@ import (
 )
 
 var (
-	_ UserRepository         = (*PostgresUserRepository)(nil)
-	_ ListingRepository      = (*PostgresListingRepository)(nil)
-	_ ReportRepository       = (*PostgresReportRepository)(nil)
-	_ ListingImageRepository = (*PostgresListingImageRepository)(nil)
+	_ UserRepository           = (*PostgresUserRepository)(nil)
+	_ ListingRepository        = (*PostgresListingRepository)(nil)
+	_ ReportRepository         = (*PostgresReportRepository)(nil)
+	_ ContactRequestRepository = (*PostgresContactRequestRepository)(nil)
+	_ ListingImageRepository   = (*PostgresListingImageRepository)(nil)
 )
 
 func newClosedPostgresDB(t *testing.T) *sql.DB {
@@ -47,6 +48,11 @@ func TestConstructors(t *testing.T) {
 	reportRepo := NewPostgresReportRepository(db)
 	if reportRepo == nil || reportRepo.db != db {
 		t.Fatalf("unexpected report repo constructor output")
+	}
+
+	contactRequestRepo := NewPostgresContactRequestRepository(db)
+	if contactRequestRepo == nil || contactRequestRepo.db != db {
+		t.Fatalf("unexpected contact request repo constructor output")
 	}
 
 	imageRepo := NewPostgresListingImageRepository(db)
@@ -124,6 +130,26 @@ func TestReportRepositoryCreateReturnsErrorWhenDBClosed(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "create report") {
 		t.Fatalf("expected create report wrapped error, got %v", err)
+	}
+}
+
+func TestContactRequestRepositoryMethodsReturnErrorWhenDBClosed(t *testing.T) {
+	repo := NewPostgresContactRequestRepository(newClosedPostgresDB(t))
+
+	_, err := repo.Create(context.Background(), &models.ContactRequest{
+		ListingID: 1,
+		BuyerID:   2,
+		SellerID:  3,
+		Message:   "Interested",
+		Status:    models.ContactRequestStatusPending,
+	})
+	if err == nil || !strings.Contains(err.Error(), "create contact request") {
+		t.Fatalf("expected create contact request wrapped error, got %v", err)
+	}
+
+	_, err = repo.ListBySellerID(context.Background(), 3)
+	if err == nil || !strings.Contains(err.Error(), "list contact requests by seller id") {
+		t.Fatalf("expected list contact requests wrapped error, got %v", err)
 	}
 }
 
