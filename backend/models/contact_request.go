@@ -17,3 +17,15 @@ type ContactRequest struct {
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type ReceivedContactRequest struct {
+	ID           int64     `json:"id"`
+	ListingID    int64     `json:"listing_id"`
+	ListingTitle string    `json:"listing_title"`
+	BuyerID      int64     `json:"buyer_id"`
+	BuyerName    string    `json:"buyer_name"`
+	BuyerEmail   string    `json:"buyer_email"`
+	Message      string    `json:"message"`
+	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:"created_at"`
+}
