@@ -4,6 +4,19 @@ import { isAuthenticated } from '../hooks/useAuth';
 import { listingsApi, profileApi } from '../services/api';
 import type { Listing } from '../types/listing';
 
+interface ContactSellerPayload {
+  listingId: number;
+  message: string;
+}
+
+async function submitContactSellerMessage(payload: ContactSellerPayload): Promise<void> {
+  // TODO: Replace this mock with POST /api/listings/{listingId}/contact when the backend API is ready.
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (payload.message.toLowerCase().includes('fail')) {
+    throw new Error('Mock contact submission failed');
+  }
+}
+
 /**
  * Listing detail - full page for /listing/:id.
  * FE-9: Detail UI
@@ -157,6 +170,7 @@ export function ListingDetailPage() {
 
   const handleSubmitContact = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!listing) return;
 
     if (!contactMessage.trim()) {
       setContactError('Please enter a message before contacting the seller.');
@@ -168,10 +182,7 @@ export function ListingDetailPage() {
     setContactSubmitting(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      if (contactMessage.toLowerCase().includes('fail')) {
-        throw new Error('Mock contact submission failed');
-      }
+      await submitContactSellerMessage({ listingId: listing.id, message: contactMessage.trim() });
       setContactStatusMessage('Message ready to send once the contact API is connected.');
     } catch (err) {
       console.error('Failed to submit contact message', err);
@@ -462,6 +473,9 @@ export function ListingDetailPage() {
 
       {showContactModal && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="contact-seller-title"
           style={{
             position: 'fixed',
             inset: 0,
@@ -482,7 +496,9 @@ export function ListingDetailPage() {
               boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
             }}
           >
-            <h2 style={{ marginTop: 0, marginBottom: '0.75rem' }}>Contact Seller</h2>
+            <h2 id="contact-seller-title" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
+              Contact Seller
+            </h2>
             <p style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '0.9rem', color: '#4b5563' }}>
               Send a message about {listing.title}.
             </p>
@@ -502,6 +518,7 @@ export function ListingDetailPage() {
                     }
                   }}
                   disabled={contactSubmitting}
+                  placeholder="Hi, is this still available?"
                   rows={5}
                   style={{
                     marginTop: '0.25rem',
