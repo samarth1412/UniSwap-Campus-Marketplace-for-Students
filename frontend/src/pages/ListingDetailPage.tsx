@@ -133,6 +133,13 @@ export function ListingDetailPage() {
     setShowReportModal(true);
   };
 
+  const handleOpenContact = () => {
+    if (!authenticated) {
+      navigate('/login', { state: { from: { pathname: location.pathname } } });
+      return;
+    }
+  };
+
   const handleCloseReport = () => {
     if (reportSubmitting) return;
     setShowReportModal(false);
@@ -286,6 +293,7 @@ export function ListingDetailPage() {
             {canContactSeller && (
               <button
                 type="button"
+                onClick={handleOpenContact}
                 style={{
                   padding: '0.5rem 1rem',
                   borderRadius: '999px',

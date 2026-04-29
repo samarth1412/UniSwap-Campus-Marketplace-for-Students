@@ -26,6 +26,12 @@ function MyListingsStateProbe() {
   return <p>{state?.deletedMessage ?? 'no-delete-message'}</p>;
 }
 
+function LoginStateProbe() {
+  const location = useLocation();
+  const state = location.state as { from?: { pathname?: string } } | null;
+  return <p>login-from:{state?.from?.pathname ?? 'none'}</p>;
+}
+
 describe('ListingDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -118,6 +124,22 @@ describe('ListingDetailPage', () => {
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Contact Seller' })).not.toBeInTheDocument();
     });
+  });
+
+  it('sends logged-out users to login when contacting a seller', async () => {
+    render(
+      <MemoryRouter initialEntries={['/listing/1']}>
+        <Routes>
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+          <Route path="/login" element={<LoginStateProbe />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Desk Lamp');
+    fireEvent.click(screen.getByRole('button', { name: 'Contact Seller' }));
+
+    expect(await screen.findByText('login-from:/listing/1')).toBeInTheDocument();
   });
 
   it('navigates to my listings with deleted-state message after delete confirm', async () => {
