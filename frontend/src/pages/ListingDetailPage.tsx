@@ -4,19 +4,6 @@ import { isAuthenticated } from '../hooks/useAuth';
 import { listingsApi, profileApi } from '../services/api';
 import type { Listing } from '../types/listing';
 
-interface ContactSellerPayload {
-  listingId: number;
-  message: string;
-}
-
-async function submitContactSellerMessage(payload: ContactSellerPayload): Promise<void> {
-  // TODO: Replace this mock with POST /api/listings/{listingId}/contact when the backend API is ready.
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  if (payload.message.toLowerCase().includes('fail')) {
-    throw new Error('Mock contact submission failed');
-  }
-}
-
 /**
  * Listing detail - full page for /listing/:id.
  * FE-9: Detail UI
@@ -182,11 +169,34 @@ export function ListingDetailPage() {
     setContactSubmitting(true);
 
     try {
-      await submitContactSellerMessage({ listingId: listing.id, message: contactMessage.trim() });
-      setContactStatusMessage('Message ready to send once the contact API is connected.');
-    } catch (err) {
+      const response = await listingsApi.createContactRequest(
+        listing.id,
+        contactMessage.trim()
+      );
+      if (!response.data.success) {
+        setContactStatusMessage(
+          response.data.error ?? 'Could not send this message right now. Please try again later.'
+        );
+        return;
+      }
+      setContactStatusMessage('Message sent to seller successfully.');
+      setContactMessage('');
+    } catch (err: unknown) {
       console.error('Failed to submit contact message', err);
-      setContactStatusMessage('Could not send this message right now. Please try again later.');
+      const ax = err as { response?: { status?: number; data?: { error?: string } } };
+      const status = ax.response?.status;
+      const backendError = ax.response?.data?.error;
+      if (status === 401) {
+        setContactStatusMessage('Please log in to contact the seller.');
+      } else if (status === 403) {
+        setContactStatusMessage('You cannot contact yourself for your own listing.');
+      } else if (status === 404) {
+        setContactStatusMessage('This listing no longer exists.');
+      } else if (status === 400) {
+        setContactStatusMessage(backendError ?? 'Please enter a valid message.');
+      } else {
+        setContactStatusMessage('Could not send this message right now. Please try again later.');
+      }
     } finally {
       setContactSubmitting(false);
     }
@@ -537,7 +547,7 @@ export function ListingDetailPage() {
                   style={{
                     margin: 0,
                     fontSize: '0.85rem',
-                    color: contactStatusMessage.startsWith('Message ready') ? '#047857' : '#b91c1c',
+                    color: contactStatusMessage.startsWith('Message sent') ? '#047857' : '#b91c1c',
                   }}
                 >
                   {contactStatusMessage}

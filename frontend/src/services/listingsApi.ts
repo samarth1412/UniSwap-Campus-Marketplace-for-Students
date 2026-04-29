@@ -91,4 +91,6 @@ export const listingsApi = {
     api.delete<ApiResponse<{ message?: string }>>(`/listings/${id}`),
   report: (id: number | string, reason: string) =>
     api.post<ApiResponse<unknown>>(`/listings/${id}/report`, { reason }),
+  createContactRequest: (id: number | string, message: string) =>
+    api.post<ApiResponse<unknown>>(`/listings/${id}/contact`, { message }),
 };

@@ -34,6 +34,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link to="/my-listings" className="layout-nav-link">
                 My Listings
               </Link>
+              <Link to="/messages" className="layout-nav-link">
+                Messages
+              </Link>
             </>
           )}
           <span className="layout-nav-spacer" aria-hidden />

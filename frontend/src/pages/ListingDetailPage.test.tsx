@@ -12,6 +12,7 @@ vi.mock('../services/api', async () => {
       getById: vi.fn(),
       remove: vi.fn(),
       report: vi.fn(),
+      createContactRequest: vi.fn(),
     },
     profileApi: {
       getMe: vi.fn(),
@@ -51,6 +52,9 @@ describe('ListingDetailPage', () => {
       },
     } as never);
     vi.mocked(listingsApi.remove).mockResolvedValue({
+      data: { success: true },
+    } as never);
+    vi.mocked(listingsApi.createContactRequest).mockResolvedValue({
       data: { success: true },
     } as never);
     vi.mocked(profileApi.getMe).mockResolvedValue({
@@ -243,11 +247,14 @@ describe('ListingDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
 
     expect(screen.getByRole('button', { name: 'Sending...' })).toBeDisabled();
-    expect(await screen.findByText('Message ready to send once the contact API is connected.')).toBeInTheDocument();
+    expect(await screen.findByText('Message sent to seller successfully.')).toBeInTheDocument();
   });
 
-  it('shows error state when contact message submission fails', async () => {
+  it('shows forbidden message when self-contact is rejected', async () => {
     localStorage.setItem('token', 'buyer-token');
+    vi.mocked(listingsApi.createContactRequest).mockRejectedValueOnce({
+      response: { status: 403 },
+    } as never);
     vi.mocked(listingsApi.getById).mockResolvedValueOnce({
       data: {
         success: true,
@@ -275,11 +282,130 @@ describe('ListingDetailPage', () => {
     await screen.findByText('Desk Lamp');
     fireEvent.click(await screen.findByRole('button', { name: 'Contact Seller' }));
     fireEvent.change(screen.getByLabelText('Message'), {
-      target: { value: 'fail this message' },
+      target: { value: 'Is this available?' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
 
-    expect(await screen.findByText('Could not send this message right now. Please try again later.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('You cannot contact yourself for your own listing.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows listing not found message when listing is invalid', async () => {
+    localStorage.setItem('token', 'buyer-token');
+    vi.mocked(listingsApi.createContactRequest).mockRejectedValueOnce({
+      response: { status: 404 },
+    } as never);
+    vi.mocked(listingsApi.getById).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          id: 1,
+          userId: 12,
+          title: 'Desk Lamp',
+          description: 'Warm white light',
+          price: 15,
+          category: 'Other',
+          imageUrl: 'https://example.com/lamp.jpg',
+          sellerName: 'Bhumi',
+        },
+      },
+    } as never);
+
+    render(
+      <MemoryRouter initialEntries={['/listing/1']}>
+        <Routes>
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Desk Lamp');
+    fireEvent.click(await screen.findByRole('button', { name: 'Contact Seller' }));
+    fireEvent.change(screen.getByLabelText('Message'), {
+      target: { value: 'Is this available?' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    expect(await screen.findByText('This listing no longer exists.')).toBeInTheDocument();
+  });
+
+  it('shows backend validation message for bad contact payload', async () => {
+    localStorage.setItem('token', 'buyer-token');
+    vi.mocked(listingsApi.createContactRequest).mockRejectedValueOnce({
+      response: { status: 400, data: { error: 'message is required' } },
+    } as never);
+    vi.mocked(listingsApi.getById).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          id: 1,
+          userId: 12,
+          title: 'Desk Lamp',
+          description: 'Warm white light',
+          price: 15,
+          category: 'Other',
+          imageUrl: 'https://example.com/lamp.jpg',
+          sellerName: 'Bhumi',
+        },
+      },
+    } as never);
+
+    render(
+      <MemoryRouter initialEntries={['/listing/1']}>
+        <Routes>
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Desk Lamp');
+    fireEvent.click(await screen.findByRole('button', { name: 'Contact Seller' }));
+    fireEvent.change(screen.getByLabelText('Message'), {
+      target: { value: 'Valid text' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    expect(await screen.findByText('message is required')).toBeInTheDocument();
+  });
+
+  it('shows login message when contact request is unauthorized', async () => {
+    localStorage.setItem('token', 'expired-token');
+    vi.mocked(listingsApi.createContactRequest).mockRejectedValueOnce({
+      response: { status: 401 },
+    } as never);
+    vi.mocked(listingsApi.getById).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          id: 1,
+          userId: 12,
+          title: 'Desk Lamp',
+          description: 'Warm white light',
+          price: 15,
+          category: 'Other',
+          imageUrl: 'https://example.com/lamp.jpg',
+          sellerName: 'Bhumi',
+        },
+      },
+    } as never);
+
+    render(
+      <MemoryRouter initialEntries={['/listing/1']}>
+        <Routes>
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Desk Lamp');
+    fireEvent.click(await screen.findByRole('button', { name: 'Contact Seller' }));
+    fireEvent.change(screen.getByLabelText('Message'), {
+      target: { value: 'Is this available?' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    expect(await screen.findByText('Please log in to contact the seller.')).toBeInTheDocument();
   });
 
   it('navigates to my listings with deleted-state message after delete confirm', async () => {

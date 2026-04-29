@@ -14,6 +14,7 @@ import { EditListingPage } from './pages/EditListingPage';
 import { MyListingsPage } from './pages/MyListingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { WishlistPage } from './pages/WishlistPage';
+import { ContactRequestsPage } from './pages/ContactRequestsPage';
 import { WishlistProvider } from './context/WishlistContext';
 
 function App() {
@@ -69,6 +70,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MyListingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute>
+                  <ContactRequestsPage />
                 </ProtectedRoute>
               }
             />
