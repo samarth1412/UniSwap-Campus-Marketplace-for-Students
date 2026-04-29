@@ -61,6 +61,7 @@ func main() {
 	uploadHandler := handlers.NewUploadHandler(listingImageService)
 	wishlistHandler := handlers.NewWishlistHandler(wishlistService)
 	userHandler := handlers.NewUserHandler(listingService)
+	contactRequestHandler := handlers.NewContactRequestHandler(contactRequestService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", a.healthCheck)
@@ -90,6 +91,7 @@ func main() {
 	mux.Handle("/api/wishlist", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.Wishlist)))
 	mux.Handle("/api/wishlist/", middleware.Auth(authService)(http.HandlerFunc(wishlistHandler.WishlistByID)))
 	mux.Handle("/api/users/", middleware.Auth(authService)(http.HandlerFunc(userHandler.UserListings)))
+	mux.Handle("/api/contact-requests/received", middleware.Auth(authService)(http.HandlerFunc(contactRequestHandler.Received)))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	srv := &http.Server{
