@@ -76,7 +76,8 @@ func (r *reportRepoForHandlerTest) Create(ctx context.Context, report *models.Re
 }
 
 type contactRequestRepoForHandlerTest struct {
-	createFn func(ctx context.Context, request *models.ContactRequest) (*models.ContactRequest, error)
+	createFn             func(ctx context.Context, request *models.ContactRequest) (*models.ContactRequest, error)
+	listReceivedBySeller func(ctx context.Context, sellerID int64) ([]models.ReceivedContactRequest, error)
 }
 
 func (r *contactRequestRepoForHandlerTest) Create(ctx context.Context, request *models.ContactRequest) (*models.ContactRequest, error) {
@@ -86,8 +87,11 @@ func (r *contactRequestRepoForHandlerTest) Create(ctx context.Context, request *
 	return r.createFn(ctx, request)
 }
 
-func (r *contactRequestRepoForHandlerTest) ListBySellerID(ctx context.Context, sellerID int64) ([]models.ContactRequest, error) {
-	return []models.ContactRequest{}, nil
+func (r *contactRequestRepoForHandlerTest) ListReceivedBySellerID(ctx context.Context, sellerID int64) ([]models.ReceivedContactRequest, error) {
+	if r.listReceivedBySeller == nil {
+		return []models.ReceivedContactRequest{}, nil
+	}
+	return r.listReceivedBySeller(ctx, sellerID)
 }
 
 type parserForHandlerTest struct {
