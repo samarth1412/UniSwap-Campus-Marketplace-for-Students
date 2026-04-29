@@ -47,15 +47,17 @@ func main() {
 	listingImageRepo := repository.NewPostgresListingImageRepository(db)
 	wishlistRepo := repository.NewPostgresWishlistRepository(db)
 	reportRepo := repository.NewPostgresReportRepository(db)
+	contactRequestRepo := repository.NewPostgresContactRequestRepository(db)
 
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	listingService := services.NewListingService(listingRepo)
 	listingImageService := services.NewListingImageService(listingRepo, listingImageRepo)
 	wishlistService := services.NewWishlistService(wishlistRepo, listingRepo)
 	reportService := services.NewReportService(reportRepo, listingRepo)
+	contactRequestService := services.NewContactRequestService(contactRequestRepo, listingRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
-	listingHandler := handlers.NewListingHandler(listingService, reportService)
+	listingHandler := handlers.NewListingHandler(listingService, reportService, contactRequestService)
 	uploadHandler := handlers.NewUploadHandler(listingImageService)
 	wishlistHandler := handlers.NewWishlistHandler(wishlistService)
 	userHandler := handlers.NewUserHandler(listingService)
@@ -78,7 +80,7 @@ func main() {
 			middleware.Auth(authService)(http.HandlerFunc(uploadHandler.UploadListingImages)).ServeHTTP(w, r)
 			return
 		}
-		if (strings.HasSuffix(path, "/report") && r.Method == http.MethodPost) || r.Method == http.MethodPut || r.Method == http.MethodDelete {
+		if ((strings.HasSuffix(path, "/report") || strings.HasSuffix(path, "/contact")) && r.Method == http.MethodPost) || r.Method == http.MethodPut || r.Method == http.MethodDelete {
 			middleware.Auth(authService)(http.HandlerFunc(listingHandler.ListingByIDRoutes)).ServeHTTP(w, r)
 			return
 		}
