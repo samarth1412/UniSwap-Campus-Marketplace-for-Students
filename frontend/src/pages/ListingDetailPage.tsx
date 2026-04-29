@@ -29,6 +29,8 @@ export function ListingDetailPage() {
   const [imageFailed, setImageFailed] = useState(false);
   const fallbackImage = 'https://placehold.co/900x620?text=No+Image+Available';
   const [flowMessage, setFlowMessage] = useState<string | null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactMessage, setContactMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
   const authenticated = isAuthenticated();
@@ -138,6 +140,13 @@ export function ListingDetailPage() {
       navigate('/login', { state: { from: { pathname: location.pathname } } });
       return;
     }
+
+    setContactMessage('');
+    setShowContactModal(true);
+  };
+
+  const handleCloseContact = () => {
+    setShowContactModal(false);
   };
 
   const handleCloseReport = () => {
@@ -415,6 +424,84 @@ export function ListingDetailPage() {
                 {deleteSubmitting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showContactModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              padding: '1.5rem',
+              borderRadius: '0.75rem',
+              width: '100%',
+              maxWidth: '460px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            }}
+          >
+            <h2 style={{ marginTop: 0, marginBottom: '0.75rem' }}>Contact Seller</h2>
+            <p style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '0.9rem', color: '#4b5563' }}>
+              Send a message about {listing.title}.
+            </p>
+            <form onSubmit={(event) => event.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <input type="hidden" name="listingId" value={listing.id} />
+              <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                Message
+                <textarea
+                  value={contactMessage}
+                  onChange={(event) => setContactMessage(event.target.value)}
+                  rows={5}
+                  style={{
+                    marginTop: '0.25rem',
+                    width: '100%',
+                    padding: '0.65rem 0.75rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e5e7eb',
+                    resize: 'vertical',
+                    font: 'inherit',
+                  }}
+                />
+              </label>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={handleCloseContact}
+                  style={{
+                    padding: '0.45rem 0.9rem',
+                    borderRadius: '999px',
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '0.45rem 0.9rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    backgroundColor: '#059669',
+                    color: '#fff',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Send message
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
