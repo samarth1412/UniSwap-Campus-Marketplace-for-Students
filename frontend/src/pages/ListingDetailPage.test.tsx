@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ListingDetailPage } from './ListingDetailPage';
-import { listingsApi } from '../services/api';
+import { listingsApi, profileApi } from '../services/api';
 
 vi.mock('../services/api', async () => {
   const actual = await vi.importActual('../services/api');
@@ -12,6 +12,10 @@ vi.mock('../services/api', async () => {
       getById: vi.fn(),
       remove: vi.fn(),
       report: vi.fn(),
+    },
+    profileApi: {
+      getMe: vi.fn(),
+      getMyListings: vi.fn(),
     },
   };
 });
@@ -25,6 +29,7 @@ function MyListingsStateProbe() {
 describe('ListingDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     vi.mocked(listingsApi.getById).mockResolvedValue({
       data: {
         success: true,
@@ -41,6 +46,16 @@ describe('ListingDetailPage', () => {
     } as never);
     vi.mocked(listingsApi.remove).mockResolvedValue({
       data: { success: true },
+    } as never);
+    vi.mocked(profileApi.getMe).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          id: 7,
+          full_name: 'Samarth',
+          email: 'samarth@example.com',
+        },
+      },
     } as never);
   });
 
@@ -71,6 +86,38 @@ describe('ListingDetailPage', () => {
 
     await screen.findByText('Desk Lamp');
     expect(screen.getByRole('button', { name: 'Contact Seller' })).toBeInTheDocument();
+  });
+
+  it('hides the contact seller action for the listing owner', async () => {
+    localStorage.setItem('token', 'seller-token');
+    vi.mocked(listingsApi.getById).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          id: 1,
+          userId: 7,
+          title: 'Desk Lamp',
+          description: 'Warm white light',
+          price: 15,
+          category: 'Other',
+          imageUrl: 'https://example.com/lamp.jpg',
+          sellerName: 'Samarth',
+        },
+      },
+    } as never);
+
+    render(
+      <MemoryRouter initialEntries={['/listing/1']}>
+        <Routes>
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Desk Lamp');
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Contact Seller' })).not.toBeInTheDocument();
+    });
   });
 
   it('navigates to my listings with deleted-state message after delete confirm', async () => {

@@ -30,6 +30,7 @@ export function ListingDetailPage() {
   const fallbackImage = 'https://placehold.co/900x620?text=No+Image+Available';
   const [flowMessage, setFlowMessage] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
   const authenticated = isAuthenticated();
 
   useEffect(() => {
@@ -46,8 +47,11 @@ export function ListingDetailPage() {
     async function loadCurrentUser() {
       if (!authenticated) {
         setCurrentUserId(null);
+        setCurrentUserLoaded(true);
         return;
       }
+
+      setCurrentUserLoaded(false);
 
       try {
         const response = await profileApi.getMe();
@@ -58,6 +62,10 @@ export function ListingDetailPage() {
         console.error('Failed to load current user for listing contact checks', err);
         if (!cancelled) {
           setCurrentUserId(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setCurrentUserLoaded(true);
         }
       }
     }
@@ -116,7 +124,8 @@ export function ListingDetailPage() {
 
   const isOwner =
     listing?.userId !== undefined && currentUserId !== null && listing.userId === currentUserId;
-  const canContactSeller = authenticated && !isOwner;
+  const contactEligibilityResolved = !authenticated || currentUserLoaded;
+  const canContactSeller = contactEligibilityResolved && !isOwner;
 
   const handleOpenReport = () => {
     setReportReason('');
@@ -274,19 +283,21 @@ export function ListingDetailPage() {
             data-listing-owner={isOwner}
             style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}
           >
-            <button
-              type="button"
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: '#059669',
-                color: '#fff',
-                cursor: 'pointer',
-              }}
-            >
-              Contact Seller
-            </button>
+            {canContactSeller && (
+              <button
+                type="button"
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: '#059669',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                Contact Seller
+              </button>
+            )}
             <Link
               to={`/listing/${listing.id}/edit`}
               style={{
