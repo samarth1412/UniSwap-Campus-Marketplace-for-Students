@@ -1,13 +1,15 @@
 import { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import type { Listing } from '../types/listing';
-import { formatUsdFromInr } from '../utils/currency';
-import { useWishlist } from '../context/WishlistContext';
+import { formatUsd } from '../utils/currency';
+import { useWishlist } from '../context/useWishlist';
 import './ListingCard.css';
 
 type ListingCardProps = {
   listing: Listing;
 };
+
+const FALLBACK_LISTING_IMAGE = 'https://placehold.co/640x420?text=No+Image';
 
 function HeartOutlineIcon() {
   return (
@@ -37,6 +39,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   const { isWishlisted, toggleWishlist, togglingListingId } = useWishlist();
   const wishlisted = isWishlisted(listing.id);
   const toggling = togglingListingId === listing.id;
+  const imageSrc = listing.imageUrl?.trim() ? listing.imageUrl : FALLBACK_LISTING_IMAGE;
 
   const handleWishlistClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -53,10 +56,16 @@ export function ListingCard({ listing }: ListingCardProps) {
       <article className="listing-card">
         <div className="listing-card__image-wrap">
           <img
-            src={listing.imageUrl}
+            src={imageSrc}
             alt={listing.title}
             className="listing-card__image"
             loading="lazy"
+            onError={(event) => {
+              const image = event.currentTarget;
+              if (image.src !== FALLBACK_LISTING_IMAGE) {
+                image.src = FALLBACK_LISTING_IMAGE;
+              }
+            }}
           />
           <button
             type="button"
@@ -73,7 +82,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         <div className="listing-card__body">
           <span className="listing-card__category">{listing.category}</span>
           <h2 className="listing-card__title">{listing.title}</h2>
-          <span className="listing-card__price">{formatUsdFromInr(listing.price)}</span>
+          <span className="listing-card__price">{formatUsd(listing.price)}</span>
         </div>
       </article>
     </Link>

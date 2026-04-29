@@ -1,22 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, type ApiResponse } from '../services/api';
+import { listingsApi } from '../services/api';
 import { ImageUpload } from '../components/ImageUpload';
-
-interface CreateListingPayload {
-  title: string;
-  description: string;
-  price: number;
-  category: string;
-  // For Sprint 1 we keep image as optional string; backend can evolve later.
-  imageUrl?: string;
-}
 
 /**
  * Create listing page - protected route.
  * FE-10: Form UI
  * FE-11: Image upload component
  * FE-12: Connect to backend
+ * FE-31: Image upload UI (create flow)
  */
 export function CreateListingPage() {
   const navigate = useNavigate();
@@ -43,23 +35,28 @@ export function CreateListingPage() {
       return;
     }
 
-    // For Sprint 1, we send a simple JSON payload and ignore the image file,
-    // or you can coordinate with backend to upload image separately.
-    const payload: CreateListingPayload = {
-      title: title.trim(),
-      description: description.trim(),
-      price: numericPrice,
-      category,
-      imageUrl: '', // backend can derive from separate upload in future sprints
-    };
-
     setSubmitting(true);
     try {
-      const response = await api.post<ApiResponse<unknown>>('/listings', payload);
-      if (!response.data.success) {
+      const response = await listingsApi.create({
+        title: title.trim(),
+        description: description.trim(),
+        price: numericPrice,
+        category,
+      });
+      if (!response.data.success || !response.data.data) {
         throw new Error(response.data.error || 'Failed to create listing');
       }
-      navigate('/');
+
+      if (imageFile) {
+        const uploadResponse = await listingsApi.uploadImages(response.data.data.id, [imageFile]);
+        if (!uploadResponse.data.success) {
+          throw new Error(uploadResponse.data.error || 'Failed to upload listing image');
+        }
+      }
+
+      navigate(`/listing/${response.data.data.id}`, {
+        state: { flowMessage: 'Listing created successfully.' },
+      });
     } catch (err) {
       console.error('Failed to create listing', err);
       setError('Could not create listing right now. Please try again.');
@@ -120,7 +117,7 @@ export function CreateListingPage() {
               flex: '1 1 160px',
             }}
           >
-            <span>Price (₹)</span>
+            <span>Price (USD)</span>
             <input
               type="number"
               min={0}
@@ -164,7 +161,13 @@ export function CreateListingPage() {
         </div>
 
         <div style={{ marginTop: '0.5rem' }}>
-          <ImageUpload file={imageFile} onFileChange={setImageFile} />
+          <ImageUpload
+            label="Listing photo (optional)"
+            file={imageFile}
+            onFileChange={setImageFile}
+            disabled={submitting}
+            disabledReason="Please wait while your listing is being created."
+          />
         </div>
 
         {error && (
@@ -184,7 +187,7 @@ export function CreateListingPage() {
               backgroundColor: '#16a34a',
               color: '#fff',
               fontWeight: 600,
-              cursor: 'pointer',
+              cursor: submitting ? 'not-allowed' : 'pointer',
               opacity: submitting ? 0.8 : 1,
             }}
           >

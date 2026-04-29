@@ -36,8 +36,18 @@ func (s *ListingService) Create(ctx context.Context, userID int64, req models.Cr
 	return s.listingRepo.Create(ctx, listing)
 }
 
-func (s *ListingService) GetAll(ctx context.Context, search string) ([]models.Listing, error) {
-	return s.listingRepo.GetAll(ctx, search)
+func (s *ListingService) GetAll(ctx context.Context, query models.ListingQuery) (*models.PaginatedListings, error) {
+	if query.Page <= 0 {
+		query.Page = 1
+	}
+	if query.Limit <= 0 {
+		query.Limit = 10
+	}
+	if query.Limit > 100 {
+		query.Limit = 100
+	}
+
+	return s.listingRepo.GetAll(ctx, query)
 }
 
 func (s *ListingService) GetByID(ctx context.Context, listingID int64) (*models.Listing, error) {

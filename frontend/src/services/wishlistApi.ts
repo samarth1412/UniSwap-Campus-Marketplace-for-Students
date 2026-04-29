@@ -8,6 +8,9 @@ import type {
   WishlistPayload,
 } from './types';
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+const ASSET_BASE = API_BASE.replace(/\/api\/?$/, '');
+
 export interface WishlistEntry {
   wishlistId: number;
   listing: Listing;
@@ -20,10 +23,15 @@ function mapBackendListing(listing: BackendListing): Listing {
     description: listing.description,
     price: listing.price,
     category: listing.category,
-    imageUrl:
-      listing.primary_image_url?.trim() ||
-      'https://via.placeholder.com/640x420?text=Listing+Image',
+    imageUrl: listingImageUrl(listing.primary_image_url),
   };
+}
+
+function listingImageUrl(imageUrl?: string): string {
+  const trimmed = imageUrl?.trim();
+  if (!trimmed) return 'https://placehold.co/640x420?text=Listing+Image';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `${ASSET_BASE}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
 }
 
 function mapWishlistRow(row: WishlistListingResponse): WishlistEntry {

@@ -36,14 +36,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.authService.Register(r.Context(), req)
+	result, err := h.authService.Register(r.Context(), req)
 	if err != nil {
 		log.Printf("auth_handler.register: service failed email=%s err=%v", req.Email, err)
 		switch {
 		case errors.Is(err, services.ErrValidation):
 			writeError(w, http.StatusBadRequest, err.Error())
 		case errors.Is(err, repository.ErrEmailAlreadyExists):
-			writeError(w, http.StatusConflict, "email already exists")
+			writeError(w, http.StatusConflict, "Account already exists")
 		default:
 			writeError(w, http.StatusInternalServerError, "failed to register user")
 		}
@@ -51,8 +51,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("auth_handler.register: success email=%s", req.Email)
-	writeSuccess(w, http.StatusCreated, map[string]string{
-		"message": "registration successful",
+	writeSuccess(w, http.StatusCreated, models.AuthResponse{
+		Token: result.Token,
+		User:  result.User,
 	})
 }
 
@@ -77,9 +78,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		log.Printf("auth_handler.login: service failed email=%s err=%v", req.Email, err)
 		switch {
 		case errors.Is(err, services.ErrValidation):
-			writeError(w, http.StatusBadRequest, err.Error())
+			writeError(w, http.StatusBadRequest, "Invalid email or password")
 		case errors.Is(err, services.ErrInvalidCredentials):
-			writeError(w, http.StatusUnauthorized, "invalid email or password")
+			writeError(w, http.StatusUnauthorized, "Invalid email or password")
 		default:
 			writeError(w, http.StatusInternalServerError, "failed to login")
 		}
@@ -87,8 +88,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("auth_handler.login: success email=%s", req.Email)
-	writeSuccess(w, http.StatusOK, map[string]string{
-		"token": result.Token,
+	writeSuccess(w, http.StatusOK, models.AuthResponse{
+		Token: result.Token,
+		User:  result.User,
 	})
 }
 

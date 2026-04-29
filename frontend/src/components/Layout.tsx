@@ -16,18 +16,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="layout-shell">
       <header className="layout-header">
         <nav className="layout-nav" aria-label="Main">
-          <Link to="/" className="layout-brand">
+          <Link to={authenticated ? '/' : '/login'} className="layout-brand">
             <UniSwapLogo className="layout-brand__logo" />
             <span>UniSwap</span>
           </Link>
-          <Link to="/" className="layout-nav-link">
-            Listings
-          </Link>
-          <Link to="/wishlist" className="layout-nav-link">
-            Wishlist
-          </Link>
           {authenticated && (
             <>
+              <Link to="/" className="layout-nav-link">
+                Listings
+              </Link>
+              <Link to="/wishlist" className="layout-nav-link">
+                Wishlist
+              </Link>
               <Link to="/create" className="layout-nav-link">
                 Create Listing
               </Link>

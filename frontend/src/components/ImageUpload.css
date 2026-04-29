@@ -1,0 +1,132 @@
+.image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.image-upload__label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #111827;
+}
+
+.image-upload__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.image-upload__drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 7.5rem;
+  padding: 1rem 1.25rem;
+  border: 2px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.image-upload__drop:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.image-upload__drop--drag {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.image-upload__drop--error {
+  border-color: #f87171;
+  background: #fef2f2;
+}
+
+.image-upload__input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.image-upload__cta {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1e293b;
+  text-align: center;
+}
+
+.image-upload__cta-secondary {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.image-upload__file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+}
+
+.image-upload__file-name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #0f172a;
+  word-break: break-word;
+  flex: 1 1 12rem;
+}
+
+.image-upload__remove {
+  flex-shrink: 0;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+}
+
+.image-upload__remove:hover {
+  border-color: #cbd5e1;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.image-upload__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #b91c1c;
+}
+
+.image-upload__preview-wrap {
+  margin-top: 0.25rem;
+}
+
+.image-upload__preview {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}

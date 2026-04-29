@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { listingsApi } from '../services/api';
-import { MOCK_LISTINGS } from '../data/mockListings';
+import { ImageUpload } from '../components/ImageUpload';
 
 export function EditListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +16,10 @@ export function EditListingPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [listingExists, setListingExists] = useState(true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+
+  const isPlaceholderImage = (url: string): boolean => url.includes('placehold.co/');
 
   useEffect(() => {
     let cancelled = false;
@@ -45,24 +49,15 @@ export function EditListingPage() {
           setDescription(data.description);
           setPrice(String(data.price));
           setCategory(data.category);
+          setExistingImageUrl(isPlaceholderImage(data.imageUrl) ? null : data.imageUrl);
           setListingExists(true);
         }
       } catch (err) {
         console.error('Failed to load edit listing data', err);
-        const fallbackListing = MOCK_LISTINGS.find((item) => item.id === numericId);
 
         if (!cancelled) {
-          if (fallbackListing) {
-            setTitle(fallbackListing.title);
-            setDescription(fallbackListing.description);
-            setPrice(String(fallbackListing.price));
-            setCategory(fallbackListing.category);
-            setLoadError('Unable to load the latest listing details from the server. Showing sample data.');
-            setListingExists(true);
-          } else {
-            setListingExists(false);
-            setLoadError('Listing not found.');
-          }
+          setListingExists(false);
+          setLoadError('Unable to load this listing from the server.');
         }
       } finally {
         if (!cancelled) {
@@ -119,7 +114,18 @@ export function EditListingPage() {
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to update listing');
       }
-      navigate(`/listing/${numericId}`, { replace: true });
+
+      if (imageFile) {
+        const uploadResponse = await listingsApi.uploadImages(numericId, [imageFile]);
+        if (!uploadResponse.data.success) {
+          throw new Error(uploadResponse.data.error || 'Failed to upload listing image');
+        }
+      }
+
+      navigate(`/listing/${numericId}`, {
+        replace: true,
+        state: { flowMessage: 'Listing updated successfully.' },
+      });
     } catch (err: unknown) {
       console.error('Failed to update listing', err);
       const ax = err as { response?: { data?: { error?: string } } };
@@ -199,6 +205,17 @@ export function EditListingPage() {
           </label>
         </div>
 
+        <div style={{ marginTop: '0.25rem' }}>
+          <ImageUpload
+            label="Replace listing image"
+            file={imageFile}
+            onFileChange={setImageFile}
+            existingImageUrl={existingImageUrl}
+            disabled={submitting}
+            disabledReason="Please wait while your listing updates are being saved."
+          />
+        </div>
+
         {submitError && <p style={{ margin: 0, color: '#b91c1c', fontSize: '0.95rem' }}>{submitError}</p>}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
@@ -224,7 +241,7 @@ export function EditListingPage() {
               backgroundColor: '#2563eb',
               color: '#fff',
               fontWeight: 600,
-              cursor: 'pointer',
+              cursor: submitting ? 'not-allowed' : 'pointer',
               opacity: submitting ? 0.8 : 1,
             }}
           >

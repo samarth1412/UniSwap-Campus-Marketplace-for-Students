@@ -19,17 +19,25 @@ export function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const passwordsMatch = password === confirmPassword && password.length >= 6;
-  const valid =
-    fullName.trim() !== '' &&
-    email.trim() !== '' &&
-    EMAIL_RE.test(email) &&
-    passwordsMatch;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!valid) return;
+    if (fullName.trim() === '') {
+      setError('Full name is required');
+      return;
+    }
+    if (email.trim() === '' || !EMAIL_RE.test(email.trim())) {
+      setError('Enter a valid email address');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await authApi.register({
@@ -43,8 +51,11 @@ export function RegisterPage() {
       setToken(token);
       navigate('/', { replace: true });
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { error?: string } } };
-      const msg = ax.response?.data?.error ?? 'Registration failed. Try again.';
+      const ax = err as { response?: { status?: number; data?: { error?: string } } };
+      const msg =
+        ax.response?.status === 409
+          ? 'Account already exists'
+          : ax.response?.data?.error ?? 'Registration failed. Try again.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -54,7 +65,7 @@ export function RegisterPage() {
   return (
     <div style={{ maxWidth: 400, margin: '0 auto' }}>
       <h1>Register</h1>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div style={{ marginBottom: '1rem' }}>
           <label htmlFor="reg-name">Full Name</label>
           <input
@@ -97,8 +108,6 @@ export function RegisterPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
-            required
             style={{ display: 'block', width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
           />
         </div>
@@ -109,8 +118,6 @@ export function RegisterPage() {
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            minLength={6}
-            required
             style={{ display: 'block', width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
           />
           {confirmPassword && password !== confirmPassword && (
@@ -120,7 +127,7 @@ export function RegisterPage() {
           )}
         </div>
         {error && <p style={{ color: 'crimson', marginBottom: '1rem' }}>{error}</p>}
-        <button type="submit" disabled={!valid || loading}>
+        <button type="submit" disabled={loading}>
           {loading ? 'Creating account…' : 'Create account'}
         </button>
       </form>

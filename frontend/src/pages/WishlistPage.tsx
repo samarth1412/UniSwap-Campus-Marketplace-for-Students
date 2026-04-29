@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ListingCard } from '../components/ListingCard';
 import { isAuthenticated } from '../hooks/useAuth';
-import { useWishlist } from '../context/WishlistContext';
+import { useWishlist } from '../context/useWishlist';
 import './WishlistPage.css';
 
 export function WishlistPage() {

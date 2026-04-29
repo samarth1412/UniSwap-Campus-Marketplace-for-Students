@@ -105,14 +105,72 @@ func (h *ListingHandler) createListing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ListingHandler) getAllListings(w http.ResponseWriter, r *http.Request) {
-	search := r.URL.Query().Get("search")
-	listings, err := h.listingService.GetAll(r.Context(), search)
+	query, err := listingQueryFromRequest(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	listings, err := h.listingService.GetAll(r.Context(), query)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch listings")
 		return
 	}
 
 	writeSuccess(w, http.StatusOK, listings)
+}
+
+func listingQueryFromRequest(r *http.Request) (models.ListingQuery, error) {
+	values := r.URL.Query()
+	keyword := strings.TrimSpace(values.Get("keyword"))
+	if keyword == "" {
+		keyword = strings.TrimSpace(values.Get("search"))
+	}
+
+	query := models.ListingQuery{
+		Keyword:  keyword,
+		Category: strings.TrimSpace(values.Get("category")),
+		Page:     1,
+		Limit:    10,
+	}
+
+	if rawPage := strings.TrimSpace(values.Get("page")); rawPage != "" {
+		page, err := strconv.Atoi(rawPage)
+		if err != nil || page <= 0 {
+			return query, errors.New("page must be a positive integer")
+		}
+		query.Page = page
+	}
+
+	if rawLimit := strings.TrimSpace(values.Get("limit")); rawLimit != "" {
+		limit, err := strconv.Atoi(rawLimit)
+		if err != nil || limit <= 0 {
+			return query, errors.New("limit must be a positive integer")
+		}
+		query.Limit = limit
+	}
+
+	if rawMin := strings.TrimSpace(values.Get("min_price")); rawMin != "" {
+		minPrice, err := strconv.ParseFloat(rawMin, 64)
+		if err != nil || minPrice < 0 {
+			return query, errors.New("min_price must be a non-negative number")
+		}
+		query.MinPrice = &minPrice
+	}
+
+	if rawMax := strings.TrimSpace(values.Get("max_price")); rawMax != "" {
+		maxPrice, err := strconv.ParseFloat(rawMax, 64)
+		if err != nil || maxPrice < 0 {
+			return query, errors.New("max_price must be a non-negative number")
+		}
+		query.MaxPrice = &maxPrice
+	}
+
+	if query.MinPrice != nil && query.MaxPrice != nil && *query.MinPrice > *query.MaxPrice {
+		return query, errors.New("min_price cannot be greater than max_price")
+	}
+
+	return query, nil
 }
 
 func (h *ListingHandler) getListingByID(w http.ResponseWriter, r *http.Request, listingID int64) {

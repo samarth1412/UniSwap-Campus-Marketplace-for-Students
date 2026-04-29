@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { Listing } from '../types/listing';
 import { profileApi } from '../services/api';
+import { formatUsd } from '../utils/currency';
 
 export function MyListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -9,6 +10,7 @@ export function MyListingsPage() {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const deletedMessage = (location.state as { deletedMessage?: string } | null)?.deletedMessage;
+  const fallbackImage = 'https://placehold.co/640x420?text=No+Image';
 
   useEffect(() => {
     let cancelled = false;
@@ -60,10 +62,30 @@ export function MyListingsPage() {
         </p>
       </header>
       {deletedMessage && <p style={{ margin: 0, color: '#065f46' }}>{deletedMessage}</p>}
-      {error && <p style={{ margin: 0, color: '#b91c1c' }}>{error}</p>}
 
       {loading ? (
         <p style={{ margin: 0 }}>Loading your listings...</p>
+      ) : error ? (
+        <div style={{ border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '1.25rem', background: '#fff1f2' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '0.5rem' }}>Could not load listings</h2>
+          <p style={{ marginTop: 0, color: '#7f1d1d' }}>
+            Please refresh the page or check your connection, then try again.
+          </p>
+          <Link
+            to="/"
+            style={{
+              display: 'inline-block',
+              padding: '0.5rem 0.95rem',
+              borderRadius: '999px',
+              border: '1px solid #d1d5db',
+              color: '#111827',
+              textDecoration: 'none',
+              backgroundColor: '#fff',
+            }}
+          >
+            Back to all listings
+          </Link>
+        </div>
       ) : listings.length === 0 ? (
         <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.5rem' }}>
           <h2 style={{ marginTop: 0 }}>No listings yet</h2>
@@ -104,9 +126,15 @@ export function MyListingsPage() {
               }}
             >
               <img
-                src={listing.imageUrl}
+                src={listing.imageUrl?.trim() ? listing.imageUrl : fallbackImage}
                 alt={listing.title}
                 style={{ width: '100%', height: '180px', objectFit: 'cover' }}
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.src !== fallbackImage) {
+                    image.src = fallbackImage;
+                  }
+                }}
               />
               <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <span
@@ -120,7 +148,7 @@ export function MyListingsPage() {
                   {listing.category}
                 </span>
                 <h2 style={{ margin: 0, fontSize: '1rem' }}>{listing.title}</h2>
-                <p style={{ margin: 0, color: '#059669', fontWeight: 700 }}>Rs. {listing.price.toFixed(0)}</p>
+                <p style={{ margin: 0, color: '#059669', fontWeight: 700 }}>{formatUsd(listing.price)}</p>
                 <p style={{ margin: 0, color: '#4b5563', lineHeight: 1.5 }}>{listing.description}</p>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                   <Link

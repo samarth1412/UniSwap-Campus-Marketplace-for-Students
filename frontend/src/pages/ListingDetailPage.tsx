@@ -1,7 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { listingsApi } from '../services/api';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { isAuthenticated } from '../hooks/useAuth';
+import { listingsApi, profileApi } from '../services/api';
 import type { Listing } from '../types/listing';
+
+interface ContactSellerPayload {
+  listingId: number;
+  message: string;
+}
+
+async function submitContactSellerMessage(payload: ContactSellerPayload): Promise<void> {
+  // TODO: Replace this mock with POST /api/listings/{listingId}/contact when the backend API is ready.
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (payload.message.toLowerCase().includes('fail')) {
+    throw new Error('Mock contact submission failed');
+  }
+}
 
 /**
  * Listing detail - full page for /listing/:id.
@@ -11,6 +25,7 @@ import type { Listing } from '../types/listing';
  */
 export function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const numericId = Number(id);
 
@@ -24,6 +39,61 @@ export function ListingDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
+  const fallbackImage = 'https://placehold.co/900x620?text=No+Image+Available';
+  const [flowMessage, setFlowMessage] = useState<string | null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactError, setContactError] = useState<string | null>(null);
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactStatusMessage, setContactStatusMessage] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
+  const authenticated = isAuthenticated();
+
+  useEffect(() => {
+    const state = location.state as { flowMessage?: string } | null;
+    if (state?.flowMessage) {
+      setFlowMessage(state.flowMessage);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCurrentUser() {
+      if (!authenticated) {
+        setCurrentUserId(null);
+        setCurrentUserLoaded(true);
+        return;
+      }
+
+      setCurrentUserLoaded(false);
+
+      try {
+        const response = await profileApi.getMe();
+        if (!cancelled && response.data.success && response.data.data) {
+          setCurrentUserId(response.data.data.id);
+        }
+      } catch (err) {
+        console.error('Failed to load current user for listing contact checks', err);
+        if (!cancelled) {
+          setCurrentUserId(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setCurrentUserLoaded(true);
+        }
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authenticated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +118,7 @@ export function ListingDetailPage() {
 
         if (!cancelled) {
           setListing(response.data.data);
+          setImageFailed(false);
         }
       } catch (err) {
         console.error('Failed to load listing detail', err);
@@ -69,10 +140,56 @@ export function ListingDetailPage() {
     };
   }, [numericId]);
 
+  const isOwner =
+    listing?.userId !== undefined && currentUserId !== null && listing.userId === currentUserId;
+  const contactEligibilityResolved = !authenticated || currentUserLoaded;
+  const canContactSeller = contactEligibilityResolved && !isOwner;
+
   const handleOpenReport = () => {
     setReportReason('');
     setReportMessage(null);
     setShowReportModal(true);
+  };
+
+  const handleOpenContact = () => {
+    if (!authenticated) {
+      navigate('/login', { state: { from: { pathname: location.pathname } } });
+      return;
+    }
+
+    setContactMessage('');
+    setContactError(null);
+    setContactStatusMessage(null);
+    setShowContactModal(true);
+  };
+
+  const handleCloseContact = () => {
+    if (contactSubmitting) return;
+    setShowContactModal(false);
+  };
+
+  const handleSubmitContact = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!listing) return;
+
+    if (!contactMessage.trim()) {
+      setContactError('Please enter a message before contacting the seller.');
+      return;
+    }
+
+    setContactError(null);
+    setContactStatusMessage(null);
+    setContactSubmitting(true);
+
+    try {
+      await submitContactSellerMessage({ listingId: listing.id, message: contactMessage.trim() });
+      setContactStatusMessage('Message ready to send once the contact API is connected.');
+    } catch (err) {
+      console.error('Failed to submit contact message', err);
+      setContactStatusMessage('Could not send this message right now. Please try again later.');
+    } finally {
+      setContactSubmitting(false);
+    }
   };
 
   const handleCloseReport = () => {
@@ -149,6 +266,38 @@ export function ListingDetailPage() {
         <Link to="/">{'< Back to listings'}</Link>
       </p>
       {error && <p style={{ margin: 0, color: '#b91c1c' }}>{error}</p>}
+      {flowMessage && (
+        <div
+          style={{
+            margin: 0,
+            padding: '0.7rem 0.9rem',
+            border: '1px solid #a7f3d0',
+            backgroundColor: '#ecfdf5',
+            borderRadius: '0.6rem',
+            color: '#065f46',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '0.75rem',
+          }}
+        >
+          <span>{flowMessage}</span>
+          <button
+            type="button"
+            onClick={() => setFlowMessage(null)}
+            style={{
+              border: '1px solid #a7f3d0',
+              backgroundColor: '#fff',
+              color: '#065f46',
+              borderRadius: '999px',
+              padding: '0.25rem 0.6rem',
+              cursor: 'pointer',
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <div
         style={{
           display: 'grid',
@@ -158,10 +307,16 @@ export function ListingDetailPage() {
       >
         <div>
           <img
-            src={listing.imageUrl}
+            src={imageFailed || !listing.imageUrl?.trim() ? fallbackImage : listing.imageUrl}
             alt={listing.title}
             style={{ width: '100%', maxWidth: '480px', borderRadius: '0.75rem', border: '1px solid #eee' }}
+            onError={() => setImageFailed(true)}
           />
+          {imageFailed && (
+            <p style={{ marginTop: '0.5rem', marginBottom: 0, color: '#6b7280', fontSize: '0.9rem' }}>
+              Original image could not be loaded, so a fallback image is shown.
+            </p>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <span
@@ -182,7 +337,27 @@ export function ListingDetailPage() {
           <p style={{ marginTop: '0.5rem', color: '#4b5563' }}>
             <strong>Seller:</strong> {listing.sellerName ?? 'Campus student'}
           </p>
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+          <div
+            data-can-contact-seller={canContactSeller}
+            data-listing-owner={isOwner}
+            style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}
+          >
+            {canContactSeller && (
+              <button
+                type="button"
+                onClick={handleOpenContact}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: '#059669',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                Contact Seller
+              </button>
+            )}
             <Link
               to={`/listing/${listing.id}/edit`}
               style={{
@@ -292,6 +467,115 @@ export function ListingDetailPage() {
                 {deleteSubmitting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showContactModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="contact-seller-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              padding: '1.5rem',
+              borderRadius: '0.75rem',
+              width: '100%',
+              maxWidth: '460px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            }}
+          >
+            <h2 id="contact-seller-title" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
+              Contact Seller
+            </h2>
+            <p style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '0.9rem', color: '#4b5563' }}>
+              Send a message about {listing.title}.
+            </p>
+            <form onSubmit={handleSubmitContact} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <input type="hidden" name="listingId" value={listing.id} />
+              <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                Message
+                <textarea
+                  value={contactMessage}
+                  onChange={(event) => {
+                    setContactMessage(event.target.value);
+                    if (contactError) {
+                      setContactError(null);
+                    }
+                    if (contactStatusMessage) {
+                      setContactStatusMessage(null);
+                    }
+                  }}
+                  disabled={contactSubmitting}
+                  placeholder="Hi, is this still available?"
+                  rows={5}
+                  style={{
+                    marginTop: '0.25rem',
+                    width: '100%',
+                    padding: '0.65rem 0.75rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e5e7eb',
+                    resize: 'vertical',
+                    font: 'inherit',
+                  }}
+                />
+              </label>
+              {contactError && <p style={{ margin: 0, fontSize: '0.85rem', color: '#b91c1c' }}>{contactError}</p>}
+              {contactStatusMessage && (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.85rem',
+                    color: contactStatusMessage.startsWith('Message ready') ? '#047857' : '#b91c1c',
+                  }}
+                >
+                  {contactStatusMessage}
+                </p>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={handleCloseContact}
+                  disabled={contactSubmitting}
+                  style={{
+                    padding: '0.45rem 0.9rem',
+                    borderRadius: '999px',
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: '#fff',
+                    cursor: contactSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: contactSubmitting ? 0.7 : 1,
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={contactSubmitting}
+                  style={{
+                    padding: '0.45rem 0.9rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    backgroundColor: '#059669',
+                    color: '#fff',
+                    cursor: contactSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: contactSubmitting ? 0.8 : 1,
+                  }}
+                >
+                  {contactSubmitting ? 'Sending...' : 'Send message'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
