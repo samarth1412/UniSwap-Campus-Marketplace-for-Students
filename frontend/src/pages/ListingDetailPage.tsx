@@ -31,6 +31,7 @@ export function ListingDetailPage() {
   const [flowMessage, setFlowMessage] = useState<string | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactMessage, setContactMessage] = useState('');
+  const [contactError, setContactError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
   const authenticated = isAuthenticated();
@@ -142,11 +143,23 @@ export function ListingDetailPage() {
     }
 
     setContactMessage('');
+    setContactError(null);
     setShowContactModal(true);
   };
 
   const handleCloseContact = () => {
     setShowContactModal(false);
+  };
+
+  const handleSubmitContact = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!contactMessage.trim()) {
+      setContactError('Please enter a message before contacting the seller.');
+      return;
+    }
+
+    setContactError(null);
   };
 
   const handleCloseReport = () => {
@@ -454,13 +467,18 @@ export function ListingDetailPage() {
             <p style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '0.9rem', color: '#4b5563' }}>
               Send a message about {listing.title}.
             </p>
-            <form onSubmit={(event) => event.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <form onSubmit={handleSubmitContact} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <input type="hidden" name="listingId" value={listing.id} />
               <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>
                 Message
                 <textarea
                   value={contactMessage}
-                  onChange={(event) => setContactMessage(event.target.value)}
+                  onChange={(event) => {
+                    setContactMessage(event.target.value);
+                    if (contactError) {
+                      setContactError(null);
+                    }
+                  }}
                   rows={5}
                   style={{
                     marginTop: '0.25rem',
@@ -473,6 +491,7 @@ export function ListingDetailPage() {
                   }}
                 />
               </label>
+              {contactError && <p style={{ margin: 0, fontSize: '0.85rem', color: '#b91c1c' }}>{contactError}</p>}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.75rem' }}>
                 <button
                   type="button"

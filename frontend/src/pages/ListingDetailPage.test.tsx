@@ -176,6 +176,39 @@ describe('ListingDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument();
   });
 
+  it('validates empty contact seller messages', async () => {
+    localStorage.setItem('token', 'buyer-token');
+    vi.mocked(listingsApi.getById).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          id: 1,
+          userId: 12,
+          title: 'Desk Lamp',
+          description: 'Warm white light',
+          price: 15,
+          category: 'Other',
+          imageUrl: 'https://example.com/lamp.jpg',
+          sellerName: 'Bhumi',
+        },
+      },
+    } as never);
+
+    render(
+      <MemoryRouter initialEntries={['/listing/1']}>
+        <Routes>
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Desk Lamp');
+    fireEvent.click(await screen.findByRole('button', { name: 'Contact Seller' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    expect(screen.getByText('Please enter a message before contacting the seller.')).toBeInTheDocument();
+  });
+
   it('navigates to my listings with deleted-state message after delete confirm', async () => {
     render(
       <MemoryRouter initialEntries={['/listing/1']}>
