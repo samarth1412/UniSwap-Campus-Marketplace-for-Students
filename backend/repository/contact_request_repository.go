@@ -10,7 +10,7 @@ import (
 
 type ContactRequestRepository interface {
 	Create(ctx context.Context, request *models.ContactRequest) (*models.ContactRequest, error)
-	ListBySellerID(ctx context.Context, sellerID int64) ([]models.ContactRequest, error)
+	ListReceivedBySellerID(ctx context.Context, sellerID int64) ([]models.ReceivedContactRequest, error)
 }
 
 type PostgresContactRequestRepository struct {
@@ -53,39 +53,52 @@ func (r *PostgresContactRequestRepository) Create(ctx context.Context, request *
 	return created, nil
 }
 
-func (r *PostgresContactRequestRepository) ListBySellerID(ctx context.Context, sellerID int64) ([]models.ContactRequest, error) {
+func (r *PostgresContactRequestRepository) ListReceivedBySellerID(ctx context.Context, sellerID int64) ([]models.ReceivedContactRequest, error) {
 	const query = `
-		SELECT id, listing_id, buyer_id, seller_id, message, status, created_at
-		FROM contact_requests
-		WHERE seller_id = $1
-		ORDER BY created_at DESC
+		SELECT
+			cr.id,
+			cr.listing_id,
+			l.title,
+			cr.buyer_id,
+			u.full_name,
+			u.email,
+			cr.message,
+			cr.status,
+			cr.created_at
+		FROM contact_requests cr
+		INNER JOIN listings l ON l.id = cr.listing_id
+		INNER JOIN users u ON u.id = cr.buyer_id
+		WHERE cr.seller_id = $1
+		ORDER BY cr.created_at DESC, cr.id DESC
 	`
 
 	rows, err := r.db.QueryContext(ctx, query, sellerID)
 	if err != nil {
-		return nil, fmt.Errorf("list contact requests by seller id: %w", err)
+		return nil, fmt.Errorf("list received contact requests by seller id: %w", err)
 	}
 	defer rows.Close()
 
-	requests := make([]models.ContactRequest, 0)
+	requests := make([]models.ReceivedContactRequest, 0)
 	for rows.Next() {
-		var request models.ContactRequest
+		var request models.ReceivedContactRequest
 		if err := rows.Scan(
 			&request.ID,
 			&request.ListingID,
+			&request.ListingTitle,
 			&request.BuyerID,
-			&request.SellerID,
+			&request.BuyerName,
+			&request.BuyerEmail,
 			&request.Message,
 			&request.Status,
 			&request.CreatedAt,
 		); err != nil {
-			return nil, fmt.Errorf("scan contact request: %w", err)
+			return nil, fmt.Errorf("scan received contact request: %w", err)
 		}
 		requests = append(requests, request)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate contact requests: %w", err)
+		return nil, fmt.Errorf("iterate received contact requests: %w", err)
 	}
 
 	return requests, nil

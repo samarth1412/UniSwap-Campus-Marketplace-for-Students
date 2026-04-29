@@ -46,3 +46,11 @@ func (s *ContactRequestService) Create(ctx context.Context, listingID, buyerID i
 
 	return s.contactRequestRepo.Create(ctx, contactRequest)
 }
+
+func (s *ContactRequestService) ListReceivedBySellerID(ctx context.Context, sellerID int64) ([]models.ReceivedContactRequest, error) {
+	if sellerID <= 0 {
+		return nil, fmt.Errorf("%w: seller id is required", ErrValidation)
+	}
+
+	return s.contactRequestRepo.ListReceivedBySellerID(ctx, sellerID)
+}

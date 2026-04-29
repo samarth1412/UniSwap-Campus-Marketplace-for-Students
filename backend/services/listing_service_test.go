@@ -14,7 +14,6 @@ type listingRepoStub struct {
 	getAllFn   func(ctx context.Context, query models.ListingQuery) (*models.PaginatedListings, error)
 	getByUser  func(ctx context.Context, userID int64) ([]models.Listing, error)
 	getByIDFn  func(ctx context.Context, id int64) (*models.Listing, error)
-	getByUser  func(ctx context.Context, userID int64) ([]models.Listing, error)
 	updateByID func(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error)
 	deleteByID func(ctx context.Context, id int64) (int64, error)
 }
@@ -33,10 +32,6 @@ func (r *listingRepoStub) GetByUserID(ctx context.Context, userID int64) ([]mode
 
 func (r *listingRepoStub) GetByID(ctx context.Context, id int64) (*models.Listing, error) {
 	return r.getByIDFn(ctx, id)
-}
-
-func (r *listingRepoStub) GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error) {
-	return r.getByUser(ctx, userID)
 }
 
 func (r *listingRepoStub) UpdateByID(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error) {

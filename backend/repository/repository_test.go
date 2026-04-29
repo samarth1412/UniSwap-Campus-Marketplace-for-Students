@@ -147,8 +147,8 @@ func TestContactRequestRepositoryMethodsReturnErrorWhenDBClosed(t *testing.T) {
 		t.Fatalf("expected create contact request wrapped error, got %v", err)
 	}
 
-	_, err = repo.ListBySellerID(context.Background(), 3)
-	if err == nil || !strings.Contains(err.Error(), "list contact requests by seller id") {
+	_, err = repo.ListReceivedBySellerID(context.Background(), 3)
+	if err == nil || !strings.Contains(err.Error(), "list received contact requests by seller id") {
 		t.Fatalf("expected list contact requests wrapped error, got %v", err)
 	}
 }
