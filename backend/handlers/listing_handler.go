@@ -13,14 +13,20 @@ import (
 )
 
 type ListingHandler struct {
-	listingService *services.ListingService
-	reportService  *services.ReportService
+	listingService        *services.ListingService
+	reportService         *services.ReportService
+	contactRequestService *services.ContactRequestService
 }
 
-func NewListingHandler(listingService *services.ListingService, reportService *services.ReportService) *ListingHandler {
+func NewListingHandler(
+	listingService *services.ListingService,
+	reportService *services.ReportService,
+	contactRequestService *services.ContactRequestService,
+) *ListingHandler {
 	return &ListingHandler{
-		listingService: listingService,
-		reportService:  reportService,
+		listingService:        listingService,
+		reportService:         reportService,
+		contactRequestService: contactRequestService,
 	}
 }
 
@@ -36,7 +42,7 @@ func (h *ListingHandler) Listings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ListingHandler) ListingByIDRoutes(w http.ResponseWriter, r *http.Request) {
-	listingID, isReportRoute, ok := parseListingPath(r.URL.Path)
+	listingID, isReportRoute, isContactRoute, ok := parseListingPath(r.URL.Path)
 	if !ok {
 		writeError(w, http.StatusNotFound, "resource not found")
 		return
@@ -48,6 +54,14 @@ func (h *ListingHandler) ListingByIDRoutes(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		h.reportListing(w, r, listingID)
+		return
+	}
+	if isContactRoute {
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+		h.createContactRequest(w, r, listingID)
 		return
 	}
 
@@ -199,31 +213,66 @@ func (h *ListingHandler) reportListing(w http.ResponseWriter, r *http.Request, l
 	writeSuccess(w, http.StatusCreated, report)
 }
 
-func parseListingPath(path string) (int64, bool, bool) {
+func (h *ListingHandler) createContactRequest(w http.ResponseWriter, r *http.Request, listingID int64) {
+	userID, ok := userIDFromContext(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var req models.CreateContactRequestRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	result, err := h.contactRequestService.Create(r.Context(), listingID, userID, req)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrValidation):
+			writeError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, services.ErrForbidden):
+			writeError(w, http.StatusForbidden, "forbidden")
+		case errors.Is(err, repository.ErrListingNotFound):
+			writeError(w, http.StatusNotFound, "listing not found")
+		default:
+			writeError(w, http.StatusInternalServerError, "failed to create contact request")
+		}
+		return
+	}
+
+	writeSuccess(w, http.StatusCreated, result)
+}
+
+func parseListingPath(path string) (int64, bool, bool, bool) {
 	trimmed := strings.TrimPrefix(path, "/api/listings/")
 	if trimmed == path || trimmed == "" {
-		return 0, false, false
+		return 0, false, false, false
 	}
 
 	parts := strings.Split(strings.Trim(trimmed, "/"), "/")
 	if len(parts) == 0 || parts[0] == "" {
-		return 0, false, false
+		return 0, false, false, false
 	}
 
 	id, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil || id <= 0 {
-		return 0, false, false
+		return 0, false, false, false
 	}
 
 	// Allowed routes:
 	// /api/listings/{id}
 	// /api/listings/{id}/report
+	// /api/listings/{id}/contact
 	if len(parts) == 1 {
-		return id, false, true
+		return id, false, false, true
 	}
 	if len(parts) == 2 && parts[1] == "report" {
-		return id, true, true
+		return id, true, false, true
+	}
+	if len(parts) == 2 && parts[1] == "contact" {
+		return id, false, true, true
 	}
 
-	return 0, false, false
+	return 0, false, false, false
 }
