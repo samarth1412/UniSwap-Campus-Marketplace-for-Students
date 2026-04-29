@@ -20,6 +20,7 @@ type listingRepoForUploadTest struct {
 	getByIDFn  func(ctx context.Context, id int64) (*models.Listing, error)
 	createFn   func(ctx context.Context, listing *models.Listing) (*models.Listing, error)
 	getAllFn   func(ctx context.Context, search string) ([]models.Listing, error)
+	getByUser  func(ctx context.Context, userID int64) ([]models.Listing, error)
 	updateByID func(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error)
 	deleteByID func(ctx context.Context, id int64) (int64, error)
 }
@@ -32,6 +33,9 @@ func (r *listingRepoForUploadTest) GetAll(ctx context.Context, search string) ([
 }
 func (r *listingRepoForUploadTest) GetByID(ctx context.Context, id int64) (*models.Listing, error) {
 	return r.getByIDFn(ctx, id)
+}
+func (r *listingRepoForUploadTest) GetByUserID(ctx context.Context, userID int64) ([]models.Listing, error) {
+	return r.getByUser(ctx, userID)
 }
 func (r *listingRepoForUploadTest) UpdateByID(ctx context.Context, id int64, listing *models.Listing) (*models.Listing, error) {
 	return r.updateByID(ctx, id, listing)
