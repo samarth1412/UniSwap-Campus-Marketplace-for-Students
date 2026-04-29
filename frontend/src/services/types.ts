@@ -85,3 +85,15 @@ export interface BackendUser {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface BackendReceivedContactRequest {
+  id: number;
+  listing_id: number;
+  listing_title: string;
+  buyer_id: number;
+  buyer_name: string;
+  buyer_email: string;
+  message: string;
+  status: string;
+  created_at: string;
+}
