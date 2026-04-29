@@ -274,6 +274,19 @@ export function ListingDetailPage() {
             data-listing-owner={isOwner}
             style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}
           >
+            <button
+              type="button"
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '999px',
+                border: 'none',
+                backgroundColor: '#059669',
+                color: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              Contact Seller
+            </button>
             <Link
               to={`/listing/${listing.id}/edit`}
               style={{

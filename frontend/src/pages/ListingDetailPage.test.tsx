@@ -60,6 +60,19 @@ describe('ListingDetailPage', () => {
     expect(screen.queryByText('Listing updated successfully.')).not.toBeInTheDocument();
   });
 
+  it('shows the contact seller action on listing details', async () => {
+    render(
+      <MemoryRouter initialEntries={['/listing/1']}>
+        <Routes>
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Desk Lamp');
+    expect(screen.getByRole('button', { name: 'Contact Seller' })).toBeInTheDocument();
+  });
+
   it('navigates to my listings with deleted-state message after delete confirm', async () => {
     render(
       <MemoryRouter initialEntries={['/listing/1']}>
