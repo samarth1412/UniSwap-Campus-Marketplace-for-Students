@@ -108,3 +108,37 @@ func TestListingImageJSONTags(t *testing.T) {
 		t.Fatalf("expected image_url json key")
 	}
 }
+
+func TestContactRequestJSONTags(t *testing.T) {
+	request := ContactRequest{
+		ID:        3,
+		ListingID: 7,
+		BuyerID:   1,
+		SellerID:  2,
+		Message:   "Interested in this listing",
+		Status:    ContactRequestStatusPending,
+		CreatedAt: time.Unix(400, 0),
+	}
+
+	b, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal contact request: %v", err)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(b, &body); err != nil {
+		t.Fatalf("unmarshal contact request json: %v", err)
+	}
+	if _, ok := body["listing_id"]; !ok {
+		t.Fatalf("expected listing_id json key")
+	}
+	if _, ok := body["buyer_id"]; !ok {
+		t.Fatalf("expected buyer_id json key")
+	}
+	if _, ok := body["seller_id"]; !ok {
+		t.Fatalf("expected seller_id json key")
+	}
+	if body["status"] != ContactRequestStatusPending {
+		t.Fatalf("expected pending status, got %+v", body["status"])
+	}
+}
