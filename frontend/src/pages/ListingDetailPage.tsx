@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { listingsApi } from '../services/api';
+import { isAuthenticated } from '../hooks/useAuth';
+import { listingsApi, profileApi } from '../services/api';
 import type { Listing } from '../types/listing';
 
 /**
@@ -28,6 +29,8 @@ export function ListingDetailPage() {
   const [imageFailed, setImageFailed] = useState(false);
   const fallbackImage = 'https://placehold.co/900x620?text=No+Image+Available';
   const [flowMessage, setFlowMessage] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const authenticated = isAuthenticated();
 
   useEffect(() => {
     const state = location.state as { flowMessage?: string } | null;
@@ -36,6 +39,35 @@ export function ListingDetailPage() {
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCurrentUser() {
+      if (!authenticated) {
+        setCurrentUserId(null);
+        return;
+      }
+
+      try {
+        const response = await profileApi.getMe();
+        if (!cancelled && response.data.success && response.data.data) {
+          setCurrentUserId(response.data.data.id);
+        }
+      } catch (err) {
+        console.error('Failed to load current user for listing contact checks', err);
+        if (!cancelled) {
+          setCurrentUserId(null);
+        }
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authenticated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +113,10 @@ export function ListingDetailPage() {
       cancelled = true;
     };
   }, [numericId]);
+
+  const isOwner =
+    listing?.userId !== undefined && currentUserId !== null && listing.userId === currentUserId;
+  const canContactSeller = authenticated && !isOwner;
 
   const handleOpenReport = () => {
     setReportReason('');
@@ -233,7 +269,11 @@ export function ListingDetailPage() {
           <p style={{ marginTop: '0.5rem', color: '#4b5563' }}>
             <strong>Seller:</strong> {listing.sellerName ?? 'Campus student'}
           </p>
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+          <div
+            data-can-contact-seller={canContactSeller}
+            data-listing-owner={isOwner}
+            style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}
+          >
             <Link
               to={`/listing/${listing.id}/edit`}
               style={{
