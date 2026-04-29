@@ -32,6 +32,8 @@ export function ListingDetailPage() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactMessage, setContactMessage] = useState('');
   const [contactError, setContactError] = useState<string | null>(null);
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactStatusMessage, setContactStatusMessage] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
   const authenticated = isAuthenticated();
@@ -144,14 +146,16 @@ export function ListingDetailPage() {
 
     setContactMessage('');
     setContactError(null);
+    setContactStatusMessage(null);
     setShowContactModal(true);
   };
 
   const handleCloseContact = () => {
+    if (contactSubmitting) return;
     setShowContactModal(false);
   };
 
-  const handleSubmitContact = (event: React.FormEvent) => {
+  const handleSubmitContact = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!contactMessage.trim()) {
@@ -160,6 +164,21 @@ export function ListingDetailPage() {
     }
 
     setContactError(null);
+    setContactStatusMessage(null);
+    setContactSubmitting(true);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (contactMessage.toLowerCase().includes('fail')) {
+        throw new Error('Mock contact submission failed');
+      }
+      setContactStatusMessage('Message ready to send once the contact API is connected.');
+    } catch (err) {
+      console.error('Failed to submit contact message', err);
+      setContactStatusMessage('Could not send this message right now. Please try again later.');
+    } finally {
+      setContactSubmitting(false);
+    }
   };
 
   const handleCloseReport = () => {
@@ -478,7 +497,11 @@ export function ListingDetailPage() {
                     if (contactError) {
                       setContactError(null);
                     }
+                    if (contactStatusMessage) {
+                      setContactStatusMessage(null);
+                    }
                   }}
+                  disabled={contactSubmitting}
                   rows={5}
                   style={{
                     marginTop: '0.25rem',
@@ -492,32 +515,47 @@ export function ListingDetailPage() {
                 />
               </label>
               {contactError && <p style={{ margin: 0, fontSize: '0.85rem', color: '#b91c1c' }}>{contactError}</p>}
+              {contactStatusMessage && (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.85rem',
+                    color: contactStatusMessage.startsWith('Message ready') ? '#047857' : '#b91c1c',
+                  }}
+                >
+                  {contactStatusMessage}
+                </p>
+              )}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.75rem' }}>
                 <button
                   type="button"
                   onClick={handleCloseContact}
+                  disabled={contactSubmitting}
                   style={{
                     padding: '0.45rem 0.9rem',
                     borderRadius: '999px',
                     border: '1px solid #e5e7eb',
                     backgroundColor: '#fff',
-                    cursor: 'pointer',
+                    cursor: contactSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: contactSubmitting ? 0.7 : 1,
                   }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  disabled={contactSubmitting}
                   style={{
                     padding: '0.45rem 0.9rem',
                     borderRadius: '999px',
                     border: 'none',
                     backgroundColor: '#059669',
                     color: '#fff',
-                    cursor: 'pointer',
+                    cursor: contactSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: contactSubmitting ? 0.8 : 1,
                   }}
                 >
-                  Send message
+                  {contactSubmitting ? 'Sending...' : 'Send message'}
                 </button>
               </div>
             </form>

@@ -209,6 +209,79 @@ describe('ListingDetailPage', () => {
     expect(screen.getByText('Please enter a message before contacting the seller.')).toBeInTheDocument();
   });
 
+  it('shows success state after a contact message is submitted', async () => {
+    localStorage.setItem('token', 'buyer-token');
+    vi.mocked(listingsApi.getById).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          id: 1,
+          userId: 12,
+          title: 'Desk Lamp',
+          description: 'Warm white light',
+          price: 15,
+          category: 'Other',
+          imageUrl: 'https://example.com/lamp.jpg',
+          sellerName: 'Bhumi',
+        },
+      },
+    } as never);
+
+    render(
+      <MemoryRouter initialEntries={['/listing/1']}>
+        <Routes>
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Desk Lamp');
+    fireEvent.click(await screen.findByRole('button', { name: 'Contact Seller' }));
+    fireEvent.change(screen.getByLabelText('Message'), {
+      target: { value: 'Hi, is this still available?' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    expect(screen.getByRole('button', { name: 'Sending...' })).toBeDisabled();
+    expect(await screen.findByText('Message ready to send once the contact API is connected.')).toBeInTheDocument();
+  });
+
+  it('shows error state when contact message submission fails', async () => {
+    localStorage.setItem('token', 'buyer-token');
+    vi.mocked(listingsApi.getById).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          id: 1,
+          userId: 12,
+          title: 'Desk Lamp',
+          description: 'Warm white light',
+          price: 15,
+          category: 'Other',
+          imageUrl: 'https://example.com/lamp.jpg',
+          sellerName: 'Bhumi',
+        },
+      },
+    } as never);
+
+    render(
+      <MemoryRouter initialEntries={['/listing/1']}>
+        <Routes>
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Desk Lamp');
+    fireEvent.click(await screen.findByRole('button', { name: 'Contact Seller' }));
+    fireEvent.change(screen.getByLabelText('Message'), {
+      target: { value: 'fail this message' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    expect(await screen.findByText('Could not send this message right now. Please try again later.')).toBeInTheDocument();
+  });
+
   it('navigates to my listings with deleted-state message after delete confirm', async () => {
     render(
       <MemoryRouter initialEntries={['/listing/1']}>
