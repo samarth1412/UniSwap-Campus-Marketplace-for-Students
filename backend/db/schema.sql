@@ -57,3 +57,17 @@ CREATE TABLE IF NOT EXISTS reports (
 
 CREATE INDEX IF NOT EXISTS idx_reports_listing_id ON reports(listing_id);
 CREATE INDEX IF NOT EXISTS idx_reports_reporter_id ON reports(reporter_id);
+
+CREATE TABLE IF NOT EXISTS contact_requests (
+    id BIGSERIAL PRIMARY KEY,
+    listing_id BIGINT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+    buyer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'read', 'closed')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_requests_listing_id ON contact_requests(listing_id);
+CREATE INDEX IF NOT EXISTS idx_contact_requests_buyer_id ON contact_requests(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_contact_requests_seller_id ON contact_requests(seller_id);
