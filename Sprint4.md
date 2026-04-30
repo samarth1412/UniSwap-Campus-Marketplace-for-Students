@@ -298,8 +298,3 @@ Error responses use:
 | 409 | Duplicate resource conflict |
 | 500 | Unexpected server error |
 
-## Known Follow-Up
-
-- Fix or update `TestWithCORSOptions` so the expected CORS behavior matches the current implementation requiring an `Origin` header.
-- Run Cypress in the final demo environment after starting the Vite dev server.
-- Keep the root `README.md` aligned with the setup and usage details documented above.
