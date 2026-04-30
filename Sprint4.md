@@ -298,16 +298,6 @@ Error responses use:
 | 409 | Duplicate resource conflict |
 | 500 | Unexpected server error |
 
-## Final Video Presentation Checklist
-
-Each team member should narrate a portion of the final video. The video should include:
-
-1. New Sprint 4 functionality: buyer contacts seller and seller views received contact request.
-2. Frontend walkthrough: register, login, browse, search/filter, listing details, create, edit, image upload, wishlist, report, contact requests, delete.
-3. Backend API walkthrough: auth, listings, uploads, wishlist, user listings, reports, contact requests.
-4. Test results: frontend Vitest, Cypress, backend Go tests, including Sprint 3 tests.
-5. Project pitch: explain UniSwap as a campus marketplace for trusted student-to-student buying and selling.
-
 ## Known Follow-Up
 
 - Fix or update `TestWithCORSOptions` so the expected CORS behavior matches the current implementation requiring an `Origin` header.
